@@ -1,0 +1,25 @@
+{
+	"name": "transcriptions",
+	"version": "0.0.1",
+	"type": "module",
+	"description": "Transcribe Greek, Hebrew, and Aramaic works to SVGs.",
+	"scripts": {
+		"start": "vite",
+		"build": "vite build",
+		"serve": "vite preview"
+	},
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/openbible-io/transcriptions.git"
+	},
+	"author": "thesmartwon",
+	"license": "CC0",
+	"homepage": "https://transcribe.openbible.io",
+	"dependencies": {
+		"@vaadin/router": "^1.7.5",
+		"lit": "^3.2.0"
+	},
+	"devDependencies": {
+		"vite": "^5.4.2"
+	}
+}

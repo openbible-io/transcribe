@@ -1,0 +1,117 @@
+html {
+	--primary-text-color: #3b4351;
+	--primary-theme-color: #0b8dc4;
+	--primary-font-family: sans-serif;
+	--primary-font-size: 20px;
+}
+/*! minireset.css v0.0.6 | MIT License | github.com/jgthms/minireset.css */
+html,
+body,
+p,
+ol,
+ul,
+li,
+dl,
+dt,
+dd,
+blockquote,
+figure,
+fieldset,
+legend,
+textarea,
+pre,
+hr,
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  margin: 0;
+  padding: 0;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-weight: normal;
+}
+
+ul {
+  list-style: none;
+}
+
+html {
+  box-sizing: border-box;
+}
+
+*, *::before, *::after {
+  box-sizing: inherit;
+}
+
+img,
+video {
+  height: auto;
+  max-width: 100%;
+}
+
+table {
+  border-collapse: collapse;
+  border-spacing: 0;
+}
+
+td,
+th {
+  padding: 0;
+}
+/* end minireset */
+html,
+body {
+	color: var(--primary-text-color);
+	font-family: var(--primary-font-stack);
+	font-size: var(--primary-font-size);
+	height: 100%;
+	display: flex;
+	flex-direction: column;
+}
+input, select, button {
+	font-size: calc(var(--global-font-size) * 0.83333);
+	margin: 0;
+	/*a11y*/
+	min-width: 32px;
+	min-height: 32px;
+}
+input[type="checkbox"] {
+	width: calc(var(--global-font-size) * 0.83333);
+	height: calc(var(--global-font-size) * 0.83333);
+}
+main {
+	display: flex;
+	flex-direction: column;
+	min-height: 0;
+	flex-grow: 1;
+}
+h1 {
+	font-size: 1.6em;
+}
+h2 {
+	font-size: 1.5em;
+}
+h3 {
+	font-size: 1.4em;
+}
+h4 {
+	font-size: 1.3em;
+}
+h5 {
+	font-size: 1.2em;
+}
+h6 {
+	font-size: 1.1em;
+}
+svg:not([fill]) {
+	fill: var(--primary-text-color);
+}
