@@ -1,5 +1,6 @@
 import { LitElement, html, svg, css, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
+import { styleMap } from 'lit/directives/style-map.js';
 
 @customElement('ob-transcribe')
 export class Transcribe extends LitElement {
@@ -39,6 +40,11 @@ svg {
 .mode {
 	align-self: right;
 }
+#textInput {
+	border: none;
+	background: transparent;
+	padding: 0;
+}
 		`
 	];
 
@@ -47,15 +53,15 @@ svg {
 	@property({ type: Number }) height: number = 0;
 	@property({ type: Number }) zoomMult: number = 0.05;
 	@property({ type: Number }) rotMult: number = 5;
-	/// Average size in pixels of text in `href`.
-	@property({ type: Number }) fontSize: number = 32;
 	@property({ type: Number }) backgroundOpacity: number = 0.5;
 	@property({ type: Number }) foregroundOpacity: number = 1;
 
-	@state() lastFontSize = this.fontSize;
+	@state() fontSize = 0;
+	@state() fontColor = 'black';
+
 	@state() strokeWidth = 5;
 	@state() transform = new DOMMatrix();
-	@state() mode: 'pan' | 'measure' | 'path' | 'edit' = 'pan';
+	@state() mode: 'normal' | 'path' | 'word' = 'normal';
 
 	/// timeout used for gestures to prevent jerking when releasing one of two fingers
 	@state() scale = 1;
@@ -63,15 +69,12 @@ svg {
 	@state() touches?: TouchList;
 	@state() touchTransform = new DOMMatrix();
 
-	@state() measure?: { start: Point, end: Point };
-
 	@state() words: Word[] = [];
 	@state() selectedWord?: Word;
-	@state() selectedStretch = false;
 
 	connectedCallback() {
 		super.connectedCallback()
-		this.fontSize = Math.round(this.width / 40);
+		this.fontSize = Math.round(this.width / 20);
 		this.strokeWidth = Math.round(this.fontSize / 10);
 		window.addEventListener('keydown', this.onKeyDown.bind(this));
 	}
@@ -87,34 +90,36 @@ svg {
 		const dy = clientDy / scale;
 		this.transform = new DOMMatrix().translate(dx, dy).multiply(this.transform);
 	}
-	
-	onMouseDown(ev: PointerEvent) {
-		if (this.mode == 'measure') {
-			if (ev.button != 0) return;
-			const start = this.toViewport(ev.x, ev.y);
-			if (!this.measure) this.measure = { start, end: start };
-			this.lastFontSize = this.fontSize;
-		} else if (this.mode == 'path') {
-			if (ev.button != 0) return;
+
+	onPointerDown(ev: PointerEvent) {
+		console.log('onPointerDown', ev.button);
+		if (ev.button != 0) return;
+
+		if (this.mode == 'normal') {
 			this.addWord(ev.x, ev.y);
-		} else if (this.mode == 'edit') {
-			if (!this.selectedWord) throw Error('fix bug');
-			const editingG = this.svg()
-				.getElementById(`word${this.selectedWord.index}`)!
-				.parentElement! as unknown as SVGGElement;
-			if (!rectContains(editingG.getBoundingClientRect(), ev.x, ev.y)) {
-				this.mode = 'pan';
-				this.selectedWord = undefined;
-			}
+			this.mode = 'path';
+		} else if (this.mode == 'word') {
+			this.mode = 'normal';
+			this.selectedWord = undefined;
 		}
 	}
 
-	onMouseMove(ev: MouseEvent) {
+	onPointerDownWord(ev: PointerEvent, w: Word) {
+		console.log('onPointerDownWord');
 		ev.stopPropagation();
-		if (this.mode == 'measure') {
-			if (this.measure) {
-				this.measure = { start: this.measure.start, end: this.toViewport(ev.x, ev.y) };
-				this.fontSize = Math.round(this.measure.start.distance(this.measure.end));
+
+		this.selectedWord = w;
+		this.mode = 'word';
+	}
+
+	onPointerMove(ev: MouseEvent) {
+		ev.stopPropagation();
+		console.log('onPointerMove', this.mode);
+
+		if (this.mode == 'normal') {
+			if (ev.buttons & 2) {
+				this.pan(ev.movementX, ev.movementY);
+				return;
 			}
 		} else if (this.mode == 'path') {
 			if (this.selectedWord) {
@@ -125,24 +130,14 @@ svg {
 				}
 				this.requestUpdate('words');
 			}
-		} else if (this.mode == 'pan') {
-			if (ev.buttons & 1) {
-				this.pan(ev.movementX, ev.movementY);
-				return;
-			}
 		}
-		if (ev.buttons & 4) {
-			this.pan(ev.movementX, ev.movementY);
-		}
+		if ((ev.buttons & 2) || (ev.buttons & 4)) this.pan(ev.movementX, ev.movementY);
 	}
 
-	onMouseUp(_ev: PointerEvent) {
-		if (this.mode == 'measure') {
-			this.mode = 'pan';
-			if (this.measure) setTimeout(() => this.measure = undefined, 200);
-		} else if (this.mode == 'path') {
+	onPointerUp(_ev: PointerEvent) {
+		if (this.mode == 'path') {
 			this.shadowRoot?.getElementById('textInput')?.focus();
-			this.mode = 'edit';
+			this.mode = 'word';
 			this.requestUpdate('words');
 		}
 	}
@@ -167,15 +162,7 @@ svg {
 		}
 	}
 
-	onCtx(ev: PointerEvent) {
-		console.log('dbl', ev.x, ev.y);
-		ev.preventDefault();
-		if (this.mode == 'pan') {
-			this.addWord(ev.x, ev.y);
-			this.mode = 'path';
-		}
-	}
-
+	// Touch events only for 2 finger zoom/pan
 	onTouchStart(ev: TouchEvent) {
 		if (ev.touches.length == 2 && this.allowTouch) {
 			ev.preventDefault();
@@ -216,13 +203,7 @@ svg {
 	}
 
 	onKeyDown(ev: KeyboardEvent) {
-		if (this.mode == 'measure') {
-			if (ev.key == 'Escape') {
-				this.fontSize = this.lastFontSize;
-				this.mode = 'pan';
-				this.measure = undefined;
-			}
-		} else if (this.mode == 'path') {
+		if (this.mode == 'path') {
 			if (ev.key == 'Escape') this.deleteSelected();
 		}
 	}
@@ -252,14 +233,19 @@ svg {
 	}
 
 	render() {
+		const pathColor = 'pink';
 		const pointEdit = (point: DOMPoint) => svg`
 			<g>
 				<circle
+					fill="${pathColor}"
 					cx="${point.x}"
 					cy="${point.y}"
 					r="${this.strokeWidth * 2}"
+					@pointerdown="${(ev: PointerEvent) => ev.stopPropagation()}"
 					@pointermove="${(ev: PointerEvent) => {
-						if (!(ev.buttons & 1)) return;
+						if (!(ev.buttons & 1) || this.mode != 'word') return;
+						ev.stopPropagation();
+
 						const newPoint = this.toViewport(ev.x, ev.y);
 						point.x = newPoint.x;
 						point.y = newPoint.y;
@@ -276,6 +262,14 @@ svg {
 				<button @click="${() => this.transform = new DOMMatrix()}">
 					Fit
 				</button>
+				<div>
+					<label>Color</label>
+					<input
+						type="color"
+						.value="${this.fontColor}"
+						@input="${(ev: InputEvent) => this.fontColor = (ev.target as HTMLInputElement).value}"
+					>
+				</div>
 				<div>
 					<label>Size</label>
 					<input
@@ -307,42 +301,6 @@ svg {
 						@input="${(ev: Event) => this.foregroundOpacity = +(ev.target as HTMLInputElement).value}"
 					>
 				</div>
-				${this.selectedWord && html`
-					<input
-						id="textInput"
-						.value="${this.selectedWord!.text}"
-						@input="${(ev: InputEvent) => {
-							const target = ev.target as HTMLInputElement;
-							this.selectedWord!.text = target.value;
-							this.requestUpdate('words');
-						}}"
-						@keydown="${(ev: KeyboardEvent) => {
-							if (ev.key == 'Enter') {
-								this.selectedWord = undefined;
-								this.mode = 'pan';
-								(ev.target as HTMLInputElement).blur();
-							}
-						}}"
-						@focus="${() => this.selectedStretch = false}"
-						@blur="${() => this.selectedStretch = true}"
-					/>
-					<button @click="${() => {
-						this.selectedWord!.text = this.selectedWord!.text.replace(/[\u0591-\u05C7]/g, '');
-						this.requestUpdate('selectedWord');
-						this.requestUpdate('words');
-					}}">
-						Remove diacritics
-					</button>
-					<button @click="${() => {
-						this.words.splice(this.selectedWord!.index, 1);
-						this.selectedWord = undefined;
-						this.mode = 'pan';
-						this.requestUpdate('selectedWord');
-						this.requestUpdate('words');
-					}}">
-						Delete word
-					</button>
-				`}
 				<div style="flex: 1"></div>
 				<label class="mode">${this.mode}</label>
 			</div>
@@ -350,40 +308,31 @@ svg {
 				xmlns="http://www.w3.org/2000/svg"
 				viewBox="0 0 ${this.width} ${this.height}"
 				class="editor"
-				@pointerdown="${this.onMouseDown}"
-				@pointermove="${this.onMouseMove}"
-				@pointerup="${this.onMouseUp}"
+				@pointerdown="${this.onPointerDown}"
+				@pointermove="${this.onPointerMove}"
+				@pointerup="${this.onPointerUp}"
 				@touchstart="${this.onTouchStart}"
 				@touchmove="${this.onTouchMove}"
 				@touchend="${this.onTouchEnd}"
 				@wheel="${this.onWheel}"
-				@contextmenu="${this.onCtx}"
-				@dblclick="${this.onCtx}"
+				@contextmenu="${(ev: Event) => ev.preventDefault()}"
 				style="font-size: ${this.fontSize}px"
-				stroke="black"
-				fill="pink"
+				stroke="${this.fontColor}"
+				fill="${this.fontColor}"
 			>
 				<g transform="${this.transform.multiply(this.touchTransform).toString()}">
 					<image href="${this.href}" opacity="${this.backgroundOpacity}" />
 					<g opacity="${this.foregroundOpacity}">
 						${this.words.map((w, i) => svg`
 							<g
-								@click="${() => {
-									this.selectedWord = w;
-									if (this.mode == 'edit') setTimeout(() => this.shadowRoot?.getElementById('textInput')?.focus(), 10);
-									this.mode = 'edit';
-								}}"
+								display="${w == this.selectedWord ? 'none' : 'inline'}"
+								@pointerdown="${(ev: PointerEvent) => this.onPointerDownWord(ev, w)}"
 							>
-								<path
-									id="word${i}"
-									stroke-width="${this.strokeWidth}"
-									d="${w.textPathString()}"
-								/>
+								<path id="word${i}" d="${w.textPathString()}" stroke="none" fill="none" />
 								<text
-									fill="black"
 									dominant-baseline="${this.lang == 'he' ? 'hanging' : 'auto'}"
 									lengthAdjust="spacingAndGlyphs"
-									textLength="${(this.selectedWord === w && !this.selectedStretch) ? nothing : w.textPathLen()}"
+									textLength="${this.selectedWord == w ? nothing : w.textPathLen()}"
 								>
 									<textPath href="#word${i}">
 										${w.text}
@@ -393,18 +342,62 @@ svg {
 						`)}
 					</g>
 					${this.selectedWord && svg`
-						${pointEdit(this.selectedWord.baselineStart)}
-						${pointEdit(this.selectedWord.baselineEnd)}
+						<g id="selection">
+							<foreignObject
+								width="${this.selectedWord.textPathLen()}"
+								height="${this.fontSize}"
+								transform="${this.selectedWord.transform(this.fontSize).toString()}"
+							>
+								<input
+									id="textInput"
+									style="${styleMap({
+										width: this.selectedWord.textPathLen() + 'px',
+										fontSize: this.fontSize + 'px',
+									})}"
+									.value="${this.selectedWord!.text}"
+									@input="${(ev: InputEvent) => {
+										const target = ev.target as HTMLInputElement;
+										this.selectedWord!.text = target.value;
+										this.requestUpdate('words');
+									}}"
+									@keydown="${(ev: KeyboardEvent) => {
+										if (ev.key == 'Enter') {
+											this.selectedWord = undefined;
+											this.mode = 'normal';
+											(ev.target as HTMLInputElement).blur();
+										}
+									}}"
+								/>
+							</foreignObject>
+							<path
+								stroke-width="${this.strokeWidth}"
+								d="${this.selectedWord.textPathString()}"
+								fill="${pathColor}"
+							/>
+							${pointEdit(this.selectedWord.baselineStart)}
+							${pointEdit(this.selectedWord.baselineEnd)}
+						</g>
 					`}
-					${this.measure && svg`
-						<path
-							d="M${this.measure.start.toString()} L${this.measure.end.toString()}"
-							stroke-width="${5 / matrixScale(this.svg().getScreenCTM()!)}"
-						/>
 				</g>
-				`}
 			</svg>
 		`;
+
+								//<button @click="${() => {
+								//	this.selectedWord!.text = this.selectedWord!.text.replace(/[\u0591-\u05C7]/g, '');
+								//	this.requestUpdate('selectedWord');
+								//	this.requestUpdate('words');
+								//}}">
+								//	Remove diacritics
+								//</button>
+								//<button @click="${() => {
+								//	this.words.splice(this.selectedWord!.index, 1);
+								//	this.selectedWord = undefined;
+								//	this.mode = 'pan';
+								//	this.requestUpdate('selectedWord');
+								//	this.requestUpdate('words');
+								//}}">
+								//	Delete word
+								//</button>
 	}
 }
 
@@ -418,13 +411,22 @@ class Word {
 	) {}
 
 	textPathLen(): number {
-		const p1 = this.baselineStart;
-		const p2 = this.baselineEnd;
+		const p1 = this.baselineEnd;
+		const p2 = this.baselineStart;
 		return Math.hypot(p1.x - p2.x, p1.y - p2.y);
 	}
 
 	textPathString() {
 		return `M${this.baselineEnd.toString()} L${this.baselineStart.toString()}`;
+	}
+
+	transform(fontSize: number): DOMMatrix {
+		const p1 = this.baselineEnd;
+		const p2 = this.baselineStart;
+		const rotX = Math.atan2(p2.y - p1.y, p2.x - p1.x) * 180 / Math.PI;
+		return new DOMMatrix()
+			.translate(p1.x, p1.y - fontSize)
+			.rotate(rotX);
 	}
 }
 
@@ -466,7 +468,4 @@ function angle(touches: TouchList) {
 function midpoint(touches: TouchList) {
 	let [t1, t2] = touches;
 	return new DOMPoint((t1.clientX + t2.clientX) / 2, (t1.clientY + t2.clientY) / 2);
-}
-function rectContains(rect: DOMRect, x: number, y: number) {
-	return (x >= rect.x && x <= rect.right && y >= rect.top && y <= rect.bottom);
 }
