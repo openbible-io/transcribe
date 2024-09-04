@@ -8,7 +8,6 @@ ctx.font = "64px Arial";
 ctx.textBaseline = 'hanging';
 ctx.fillText(text, x, y);
 
-
 const textMetrics = ctx.measureText(text);
 ctx.font = '10px serif';
 ctx.fillStyle = 'red';

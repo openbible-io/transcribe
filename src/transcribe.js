@@ -65,7 +65,7 @@ template.innerHTML = `
 	flex-direction: column;
 	width: 100%;
 	height: 100%;
-	--font-size: 32px;
+	--font: 32px "Noto Sans";
 }
 .editor {
 	touch-action: none;
@@ -81,8 +81,11 @@ template.innerHTML = `
 	border: none;
 	background: transparent;
 	padding: 0;
-	font-size: var(--font-size);
+	font: var(--font);
 	width: 100%;
+}
+foreignObject:has(#textInput:focus) {
+	outline: 1px solid blue;
 }
 .toolbar {
 	position: fixed;
@@ -109,7 +112,7 @@ template.innerHTML = `
 	fill: rgba(0, 0, 255, 0.2);
 }
 textPath {
-	font-size: var(--font-size);
+	font: var(--font);
 }
 textPath[lang=he],
 #textInput[lang=he] {
@@ -151,8 +154,8 @@ wordTemplate.innerHTML = `
 <svg>
 <g class="word">
 	<path fill="none" stroke="pink" stroke-width="4" />
-	<text>
-		<textPath lengthAdjust="spacingAndGlyphs" />
+	<text lengthAdjust="spacingAndGlyphs">
+		<textPath />
 	</text>
 </g>
 </svg>
@@ -189,25 +192,36 @@ class Transcribe extends HTMLElement {
 		});
 		this.svg.addEventListener('contextmenu', ev => ev.preventDefault());
 		this.svg.addEventListener('pointerdown', ev => {
+			this.startRaw = new DOMPoint(ev.x, ev.y);
+			this.start = this.toViewport(ev.x, ev.y);
+
 			if (this.tool == 'pan') {
+				ev.preventDefault();
 				this.style.cursor = 'grabbing';
 				this.upCursor = 'grab';
 			} else if (this.tool == 'text' || this.tool == 'select') {
 				if (ev.button != 0) return;
-
 				this.svg.style.userSelect = 'none';
-				this.start = this.toViewport(ev.x, ev.y);
 			}
 		});
 		this.svg.addEventListener('pointermove', ev => {
-			if (this.tool == 'pan') {
-				if (ev.buttons & 1) {
-					this.pan(ev.movementX, ev.movementY);
-					return;
-				}
-			} else if (this.tool == 'text' || this.tool == 'select') {
-				const pos = this.toViewport(ev.x, ev.y);
+			const posRaw = new DOMPoint(ev.x, ev.y);
+			// Allow panning while using other tools
+			if ((this.tool == 'pan' && (ev.buttons & 1)) || (ev.buttons & 2) || (ev.buttons & 4)) {
+				const clientDx = posRaw.x - this.startRaw.x;
+				const clientDy = posRaw.y - this.startRaw.y;
+				const scale = matrixScale(this.svg.getScreenCTM());
+				const d = new DOMPoint(clientDx / scale, clientDy / scale);
+				this.transform = new DOMMatrix().translate(d.x, d.y).multiply(this.transform);
+				this.pushCursor(this.style.cursor);
+			} else {
+				this.popCursor();
+			}
+			this.startRaw = posRaw;
+
+			if (this.tool == 'text' || this.tool == 'select') {
 				if (this.start) {
+					const pos = this.toViewport(ev.x, ev.y);
 					const width = (pos.x - this.start.x).toFixed(0);
 					const height = (pos.y - this.start.y).toFixed(0);
 					this.boxSelect.setAttribute('d', `M${fmtPoint(this.start)} h${width} v${height} h${-width}Z`);
@@ -225,13 +239,6 @@ class Transcribe extends HTMLElement {
 					}
 				}
 			}
-
-			if ((ev.buttons & 2) || (ev.buttons & 4)) {
-				this.pan(ev.movementX, ev.movementY);
-				this.pushCursor(this.style.cursor);
-			} else {
-				this.popCursor();
-			}
 		});
 		this.svg.addEventListener('pointerup', ev => {
 			this.popCursor();
@@ -244,6 +251,7 @@ class Transcribe extends HTMLElement {
 				this.fo.setAttribute('y', bbox.y);
 				this.fo.setAttribute('width', bbox.width);
 				this.fo.setAttribute('height', bbox.height);
+				this.fo.removeAttribute('transform');
 
 				// scale input to selection
 				const foreignHeight = this.fo.getBoundingClientRect().height;
@@ -260,6 +268,8 @@ class Transcribe extends HTMLElement {
 					this.textInput.focus();
 
 					this.tool = 'select';
+				} else {
+					this.fo.setAttribute('width', 0);
 				}
 			}
 
@@ -326,7 +336,7 @@ class Transcribe extends HTMLElement {
 			const width = this.fo.width.baseVal.value;
 			textPath.setAttribute('lang', this.lang);
 			path.setAttribute('d', `M${x},${y + metrics.fontBoundingBoxAscent} h${width}`);
-			textPath.setAttribute('textLength', width);
+			textPath.parentElement.setAttribute('textLength', width);
 		}
 		this.textInput.value = '';
 		this.fo.setAttribute('width', 0);
@@ -379,17 +389,6 @@ class Transcribe extends HTMLElement {
 	 * @param {clientDy} number
 	 */
 	panAmount(clientDx, clientDy) {
-		const scale = matrixScale(this.svg.getScreenCTM());
-		return new DOMPoint(clientDx / scale, clientDy / scale);
-	}
-
-	/**
-	 * @param {clientDx} number
-	 * @param {clientDy} number
-	 */
-	pan(clientDx, clientDy) {
-		const amount = this.panAmount(clientDx, clientDy);
-		this.transform = new DOMMatrix().translate(amount.x, amount.y).multiply(this.transform);
 	}
 
 	/**
