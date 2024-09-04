@@ -27,6 +27,29 @@ function matrixScale(matrix) {
 	return Math.sqrt(matrix.a * matrix.a + matrix.b * matrix.b);
 }
 /**
+ * @param {TouchList} touches
+ */
+function distance(touches) {
+	let [t1, t2] = touches;
+	return Math.hypot(t2.clientX - t1.clientX, t2.clientY - t1.clientY);
+}
+/**
+ * @param {TouchList} touches
+ */
+function angle(touches) {
+	let [t1, t2] = touches;
+	let dx = t2.clientX - t1.clientX;
+	let dy = t2.clientY - t1.clientY;
+	return (Math.atan2(dy, dx) * 180) / Math.PI;
+}
+/**
+ * @param {TouchList} touches
+ */
+function midpoint(touches) {
+	let [t1, t2] = touches;
+	return new DOMPoint((t1.clientX + t2.clientX) / 2, (t1.clientY + t2.clientY) / 2);
+}
+/**
  * @param {DOMPoint} p
  */
 function fmtPoint(p) {
@@ -48,12 +71,7 @@ function fontMetrics(ele) {
  * @param {DOMRectReadOnly} b
  */
 function isOverlapping(a, b) {
-	return !(
-		a.top > b.bottom ||
-		a.right < b.left ||
-		a.bottom < b.top ||
-		a.left > b.right
-	);
+	return !(a.top > b.bottom || a.right < b.left || a.bottom < b.top || a.left > b.right);
 }
 
 const xmlns = 'http://www.w3.org/2000/svg';
@@ -192,11 +210,11 @@ class Transcribe extends HTMLElement {
 		});
 		this.svg.addEventListener('contextmenu', ev => ev.preventDefault());
 		this.svg.addEventListener('pointerdown', ev => {
+			ev.preventDefault();
 			this.startRaw = new DOMPoint(ev.x, ev.y);
 			this.start = this.toViewport(ev.x, ev.y);
 
 			if (this.tool == 'pan') {
-				ev.preventDefault();
 				this.style.cursor = 'grabbing';
 				this.upCursor = 'grab';
 			} else if (this.tool == 'text' || this.tool == 'select') {
@@ -205,11 +223,14 @@ class Transcribe extends HTMLElement {
 			}
 		});
 		this.svg.addEventListener('pointermove', ev => {
-			const posRaw = new DOMPoint(ev.x, ev.y);
+			ev.preventDefault();
+			const posOld = this.startRaw;
+			this.startRaw = new DOMPoint(ev.x, ev.y);
+			if (this.touches || !this.allowTouch) return;
 			// Allow panning while using other tools
 			if ((this.tool == 'pan' && (ev.buttons & 1)) || (ev.buttons & 2) || (ev.buttons & 4)) {
-				const clientDx = posRaw.x - this.startRaw.x;
-				const clientDy = posRaw.y - this.startRaw.y;
+				const clientDx = this.startRaw.x - posOld.x;
+				const clientDy = this.startRaw.y - posOld.y;
 				const scale = matrixScale(this.svg.getScreenCTM());
 				const d = new DOMPoint(clientDx / scale, clientDy / scale);
 				this.transform = new DOMMatrix().translate(d.x, d.y).multiply(this.transform);
@@ -217,7 +238,6 @@ class Transcribe extends HTMLElement {
 			} else {
 				this.popCursor();
 			}
-			this.startRaw = posRaw;
 
 			if (this.tool == 'text' || this.tool == 'select') {
 				if (this.start) {
@@ -302,6 +322,44 @@ class Transcribe extends HTMLElement {
 			this.textInputFocused = false;
 			if (ev.relatedTarget) this.onTextInput();
 		});
+
+		this.allowTouch = true;
+		this.svg.addEventListener('touchstart', ev => {
+			if (ev.touches.length == 2 && this.allowTouch) {
+				ev.preventDefault();
+				this.touches = ev.touches;
+			}
+		});
+		this.svg.addEventListener('touchmove', ev => {
+			if (ev.touches.length == 2) {
+				if (!this.touches) return;
+				ev.preventDefault();
+
+				const scale = distance(ev.touches) / distance(this.touches);
+				const rotation = angle(ev.touches) - angle(this.touches);
+				const mpStart = midpoint(this.touches);
+				const mpCur = midpoint(ev.touches);
+				const translationX = mpCur.x - mpStart.x;
+				const translationY = mpCur.y - mpStart.y;
+				const origin = mpStart
+					.matrixTransform(this.svg.getScreenCTM().inverse())
+					.matrixTransform(this.transform.inverse());
+
+				const touchTransform = new DOMMatrix()
+					.translate(origin.x, origin.y)
+					.translate(translationX, translationY)
+					.rotate(rotation)
+					.scale(scale)
+					.translate(-origin.x, -origin.y);
+				this.transform = this.transform.multiply(touchTransform);
+				this.touches = ev.touches;
+			}
+		});
+		this.svg.addEventListener('touchend', () => {
+			this.touches = undefined;
+			this.allowTouch = false;
+			setTimeout(() => this.allowTouch = true, 200);
+		});
 	}
 
 	connectedCallback() {
@@ -344,9 +402,7 @@ class Transcribe extends HTMLElement {
 	}
 
 	onDocumentPointerDown() {
-		if (this.textInputFocused) {
-			this.onTextInput();
-		}
+		if (this.textInputFocused) this.onTextInput();
 	}
 
 	#transform = new DOMMatrix();
