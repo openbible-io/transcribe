@@ -119,10 +119,11 @@ template.innerHTML = `
 	stroke-dasharray: 4;
 	stroke: var(--select-stroke);
 }
-.word.selected > path {
+.editor.select .word.selected > path {
 	stroke: var(--select-stroke);
 }
 #textInput {
+	outline: none;
 	border: none;
 	background: transparent;
 	padding: 0;
@@ -150,7 +151,7 @@ foreignObject:has(#textInput:focus) {
 	left: 0;
 	background: gray;
 }
-#pathPoints > circle {
+.editor.select #pathPoints > circle {
 	r: 4px;
 	cursor: pointer;
 }
@@ -251,8 +252,8 @@ class Transcribe extends HTMLElement {
 		this.textInput = root.getElementById('textInput');
 		/** @type {SVGGElement} */
 		this.pathPoints = root.getElementById('pathPoints');
-
-		this.tool = 'select';
+		// call custom setter to push state to DOM
+		this.tool = 'pan';
 		root.querySelectorAll('[name="tool"]')
 			.forEach(n => n.addEventListener('change', ev => this.tool = ev.target.id));
 
@@ -416,12 +417,14 @@ class Transcribe extends HTMLElement {
 			this.upCursor = 'grab';
 			return;
 		}
+		// selecting point?
 		if (ev.target.parentElement == this.pathPoints) {
 			/** @type {SVGCircleElement} */
 			this.pathPoint = ev.target;
 			return;
 		}
 
+		// selecting word?
 		/** @type {SVGGElement} */
 		const word = ev.target.closest('g.word');
 		if (!ev.shiftKey) this.selectNone();
@@ -533,6 +536,9 @@ class Transcribe extends HTMLElement {
 		if (this.tool == 'text') {
 			const bbox = this.selectDrag.getBBox();
 			this.startTextInput(bbox);
+		} else if (this.tool == 'select') {
+			const selections = this.words.getElementsByClassName('selected');
+			this.updateSelectGroup(selections);
 		}
 
 		this.selectDrag.setAttribute('d', '');
@@ -601,7 +607,8 @@ class Transcribe extends HTMLElement {
 		this.#transform = newValue;
 	}
 
-	#tool = 'pan';
+	/** @type {'pan' | 'select' | 'text' | 'ocr'} */
+	#tool;
 	get tool() { return this.#tool; }
 	set tool(newValue) {
 		this.shadowRoot.getElementById(newValue).checked = true;
@@ -612,10 +619,9 @@ class Transcribe extends HTMLElement {
 		} else {
 			this.style.cursor = 'auto';
 		}
-		// for tool-based selectors
+		// for CSS selectors
 		this.svg.classList.remove(this.#tool);
 		this.svg.classList.add(newValue);
-
 		this.#tool = newValue;
 	}
 
