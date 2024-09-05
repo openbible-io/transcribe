@@ -115,11 +115,11 @@ template.innerHTML = `
 .word {
 	stroke: none;
 }
-.word:hover:not(.selected) > path {
+.editor.select .word:hover:not(.selected) > path {
 	stroke-dasharray: 4;
 	stroke: var(--select-stroke);
 }
-.editor.select .word.selected > path {
+.word.selected > path {
 	stroke: var(--select-stroke);
 }
 #textInput {
@@ -151,7 +151,7 @@ foreignObject:has(#textInput:focus) {
 	background: gray;
 }
 #pathPoints > circle {
-	r: 4;
+	r: 4px;
 	cursor: pointer;
 }
 #selectDrag {
@@ -414,6 +414,7 @@ class Transcribe extends HTMLElement {
 		if (this.tool == 'pan') {
 			this.style.cursor = 'grabbing';
 			this.upCursor = 'grab';
+			return;
 		}
 		if (ev.target.parentElement == this.pathPoints) {
 			/** @type {SVGCircleElement} */
