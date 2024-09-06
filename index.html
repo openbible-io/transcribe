@@ -10,7 +10,55 @@
 		<title>Transcribe</title>
 	</head>
 	<body>
-		<ob-transcribe href="./data/eurotext.png"></ob-transcribe>
+		<div class="toolbar">
+			<div>
+				<input type="radio" name="tool" id="pan">
+				<label for="pan">pan</label>
+				<input type="radio" name="tool" id="select">
+				<label for="select">select</label>
+				<input type="radio" name="tool" id="text">
+				<label for="text">text</label>
+				<input type="radio" name="tool" id="ocr">
+				<label for="ocr">ocr</label>
+			</div>
+		</div>
+		<svg xmlns="http://www.w3.org/2000/svg" class="editor">
+			<g transform="matrix(1, 0, 0, 1, 0, 0)">
+				<image opacity="0.5" href="./data/eurotext.png" />
+				<path id="selectDrag" />
+				<path id="selectGroup" />
+		<g opacity="1" id="words"><g class="word" transform="matrix(1.8333333730697632, 0, 0, 1.8333333730697632, -50.833335876464844, -30)">
+			<path id="word0" d="M61,50 L313,50"></path>
+			<text lengthAdjust="spacingAndGlyphs" lang="en" textLength="252">
+				<textPath href="#word0">The (quick) [brown] {fox} jumps!</textPath>
+			</text>
+		</g><g class="word" transform="matrix(1.8333333730697632, 0, 0, 1.8333333730697632, -50, -110)">
+			<path id="word1" d="M60,146 L341,146"></path>
+			<text lengthAdjust="spacingAndGlyphs" lang="en" textLength="281">
+				<textPath href="#word1">from aspammer@website.com is spam.</textPath>
+			</text>
+		</g><g class="word" transform="matrix(1.7222222089767456, 0, 0, 1.7222222089767456, -41.166664123535156, -185.61111450195312)">
+			<path id="word2" d="M57,271 L339,271"></path>
+			<text lengthAdjust="spacingAndGlyphs" lang="en" textLength="282">
+				<textPath href="#word2">parasseux. La volpe marrone rapida</textPath>
+			</text>
+		</g></g>
+
+				<foreignObject display="none">
+					<form>
+						<input id="textInput" enterkeyhint="done">
+					</form>
+				</foreignObject>
+				<g id="pathPoints" />
+			</g>
+		</svg>
+		<div class="panelLeft">
+			<div>
+				<input id="fontSize" type="number" style="width: 5ch">
+				<input id="fontFamily">
+				<input id="fontColor" type="color">
+			</div>
+		</div>
 		<script type="module" src="src/transcribe.js"></script>
 	</body>
 </html>

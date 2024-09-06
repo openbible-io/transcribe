@@ -73,6 +73,7 @@ body {
 	color: var(--primary-text-color);
 	font-family: var(--primary-font-stack);
 	font-size: var(--primary-font-size);
+	width: 100%;
 	height: 100%;
 	display: flex;
 	flex-direction: column;
@@ -111,4 +112,71 @@ h5 {
 }
 h6 {
 	font-size: 1.1em;
+}
+
+.editor {
+	--font: 16px Arial;
+	--select-stroke: blue;
+	touch-action: none;
+	flex: 1;
+	fill: black;
+	stroke: var(--select-stroke);
+	stroke-width: 1;
+	user-select: none;
+}
+.word {
+	stroke: none;
+}
+.editor.select .word:hover:not(.selected) > path {
+	stroke-dasharray: 4;
+	stroke: var(--select-stroke);
+}
+.editor.select .word.selected > path {
+	stroke: var(--select-stroke);
+}
+#textInput {
+	outline: none;
+	border: none;
+	background: transparent;
+	padding: 0;
+	font: var(--font);
+	width: 100%;
+}
+foreignObject:has(#textInput:focus) {
+	outline: 1px solid blue;
+}
+.toolbar {
+	position: fixed;
+	display: flex;
+	justify-content: center;
+	left: 0;
+	right: 0;
+	bottom: 12px;
+	z-index: 8;
+}
+.toolbar > * {
+	position: relative;
+}
+.panelLeft {
+	position: absolute;
+	top: 0;
+	left: 0;
+	background: gray;
+}
+.editor.select #pathPoints > circle {
+	r: 4px;
+	cursor: pointer;
+}
+#selectDrag {
+	fill: rgba(0, 0, 255, 0.2);
+}
+#selectGroup {
+	fill: none;
+}
+textPath {
+	font: var(--font);
+}
+text[lang=he],
+#textInput[lang=he] {
+	dominant-baseline: hanging;
 }
