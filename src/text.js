@@ -27,21 +27,26 @@ export class Text {
 	/**
 	 * Inline text input handling.
 	 *
-	 * @param {HTMLInputElement} textInput
-	 * @param {SVGForeignObjectElement} fo
+	 * @param {SVGGSVGElement} svg
 	 * @param {string} lang
-	 * @param {SVGGElement} words
 	 */
-	constructor(textInput, fo, lang, words, onEnd) {
-		this.textInput = textInput;
-		this.fo = fo;
-		this.lang = lang;
-		this.words = words;
+	constructor(svg, onEnd) {
+		this.svg = svg;
+		/** @type {SVGGElement} */
+		this.words = svg.getElementById('words');
+		/** @type {SVGForeignObjectElement} */
+		this.fo = svg.querySelector('foreignObject');
+		/** @type {HTMLInputElement} */
+		this.textInput = svg.getElementById('textInput');
+		/** @type {SVGPathElement} */
+		this.selectDrag = svg.getElementById('selectDrag');
+
 		this.onEnd = onEnd;
+		/** @type {SVGPathElement} */
+		this.selectDrag = svg.getElementById('selectDrag');
 	}
 
 	registerListeners() {
-		console.log('form listener', this.textInput.parentElement);
 		this.textInput.parentElement.addEventListener('submit', ev => {
 			ev.preventDefault()
 			this.end();
@@ -55,6 +60,7 @@ export class Text {
 		document.removeEventListener('pointerdown', this.onDocumentPointerDown.bind(this));
 	}
 
+	/** @param {DOMRect} bbox */
 	start(bbox) {
 		this.fo.style.display = 'block';
 		this.fo.setAttribute('x', bbox.x);
@@ -66,26 +72,22 @@ export class Text {
 		// scale input to selection
 		const foreignHeight = this.fo.getBoundingClientRect().height;
 		const inputHeight = this.textInput.getBoundingClientRect().height;
-		if (inputHeight > 1 && foreignHeight > 1) {
-			const scale = foreignHeight / inputHeight;
-			const transform = new DOMMatrix().scale(scale, scale, 1, bbox.x, bbox.y);
-			this.fo.setAttribute('width', bbox.width / scale);
-			this.fo.setAttribute('height', bbox.height / scale);
-			this.fo.setAttribute('transform', transform.toString());
+		const scale = foreignHeight / inputHeight;
+		const transform = new DOMMatrix().scale(scale, scale, 1, bbox.x, bbox.y);
+		this.fo.setAttribute('width', bbox.width / scale);
+		this.fo.setAttribute('height', bbox.height / scale);
+		this.fo.setAttribute('transform', transform.toString());
 
-			this.textInput.setAttribute('lang', this.lang);
-			if (this.lang == 'he') this.textInput.setAttribute('dir', 'rtl');
-			this.textInput.focus();
-		} else {
-			console.log('too small', foreignHeight, inputHeight);
-			this.fo.style.display = 'none';
-		}
+		const lang = this.svg.getAttribute('lang');
+		this.textInput.setAttribute('lang', lang);
+		if (lang == 'he') this.textInput.setAttribute('dir', 'rtl');
+		this.textInput.focus();
 	}
 
 	end() {
 		/** @type {SVGGElement} */
 		const word = wordTemplate.content.cloneNode(true).querySelector('g');
-		word.lastElementChild.setAttribute('lang', this.lang);
+		word.lastElementChild.setAttribute('lang', this.svg.getAttribute('lang'));
 		word.setAttribute('transform', this.fo.getAttribute('transform'));
 		/** @type {SVGPathElement} */
 		const path = word.querySelector('path');
@@ -109,6 +111,13 @@ export class Text {
 		this.fo.style.display = 'none';
 		this.textInput.blur();
 		this.onEnd(word);
+	}
+
+	/** @param {string} tool */
+	pointerup(_, tool) {
+		if (tool != 'text') return;
+		const bbox = this.selectDrag.getBBox();
+		if (bbox.width > 1 && bbox.height > 1) this.start(bbox);
 	}
 
 	onDocumentPointerDown() {

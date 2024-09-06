@@ -20,10 +20,10 @@ class Color {
 }
 
 /**
- * @param {DOMMatrix} matrix
+ * @param {DOMMatrix} m
  */
-export function matrixScale(matrix) {
-	return Math.sqrt(matrix.a * matrix.a + matrix.b * matrix.b);
+export function matrixScale(m) {
+	return Math.sqrt(m.a ** 2 + m.b ** 2);
 }
 /**
  * @param {DOMPoint} p
@@ -56,4 +56,20 @@ export function fmtCommands(cmds) {
 	return cmds
 		.map(cmd => `${cmd.command}${cmd.coords.join(',')}`)
 		.join(' ');
+}
+
+/** @param {SVGGElement} svg */
+export function getTransform(svg) {
+	const g = svg.firstElementChild;
+	return g.transform.baseVal[0].matrix;
+}
+/**
+ * @param {SVGGElement} svg
+ * @param {SVGMatrix} newValue
+ * */
+export function setTransform(svg, newValue) {
+	/** @type {SVGGElement} */
+	const g = svg.firstElementChild;
+	// g.transform.baseVal[0].setMatrix(newValue);
+	g.setAttribute('transform', `matrix(${newValue.a}, ${newValue.b}, ${newValue.c}, ${newValue.d}, ${newValue.e}, ${newValue.f})`);
 }

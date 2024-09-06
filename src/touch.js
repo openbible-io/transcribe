@@ -29,9 +29,6 @@ export class Touch {
 	constructor(svg) {
 		this.allow = true;
 		this.svg = svg;
-	}
-
-	registerListeners() {
 		this.svg.addEventListener('touchstart', this.touchstart.bind(this));
 		this.svg.addEventListener('touchmove', this.touchmove.bind(this));
 		this.svg.addEventListener('touchend', this.touchend.bind(this));
