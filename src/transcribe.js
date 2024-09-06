@@ -18,7 +18,7 @@ class Color {
 		return '#' + [this.r, this.g, this.b].map(v => v.toString(16).padStart(2, '0')).join('');
 	}
 }
-const rotMult = 5;
+const rotMult = 1;
 const zoomMult = 0.05;
 /**
  * @param {DOMMatrix} matrix
@@ -69,7 +69,7 @@ function fontMetrics(ele) {
  * @param {DOMRectReadOnly} a
  * @param {DOMRectReadOnly} b
  */
-function isOverlapping(a, b) {
+function rectsOverlap(a, b) {
 	return !(a.top > b.bottom || a.right < b.left || a.bottom < b.top || a.left > b.right);
 }
 /**
@@ -257,41 +257,18 @@ class Transcribe extends HTMLElement {
 		root.querySelectorAll('[name="tool"]')
 			.forEach(n => n.addEventListener('change', ev => this.tool = ev.target.id));
 
+		// 1-1 pixel ratio with image allows rounding final coordinates to integers
 		this.img.addEventListener('load', e => {
 			const bb = e.currentTarget.getBBox();
 			this.svg.setAttribute('viewBox', `0 0 ${bb.width} ${bb.height}`);
 		});
+		// rarely want to copy image. highlighting text is not possible outside text editing mode.
+		// right click used as pan, but could one day make custom context menu.
 		this.svg.addEventListener('contextmenu', ev => ev.preventDefault());
 		this.svg.addEventListener('pointerdown', this.onPointerDown.bind(this));
 		this.svg.addEventListener('pointermove', this.onPointerMove.bind(this));
 		this.svg.addEventListener('pointerup', this.onPointerUp.bind(this));
-		this.svg.addEventListener('wheel', ev => {
-			const dir = ev.deltaY < 0 ? 1 : -1;
-			const origin = new DOMPoint(ev.x, ev.y).matrixTransform(this.svg.getScreenCTM().inverse());
-			if (ev.shiftKey) {
-				this.transform = new DOMMatrix()
-					.translate(origin.x, origin.y)
-					.rotate(dir * rotMult)
-					.translate(-origin.x, -origin.y)
-					.multiply(this.transform);
-			} else {
-				const scale = 1 + dir * zoomMult;
-				this.transform = new DOMMatrix()
-					.scale(scale, scale, 1, origin.x, origin.y)
-					.multiply(this.transform);
-			}
-		});
-		this.textInput.addEventListener('pointerdown', ev => ev.stopPropagation());
-		this.textInput.parentElement.addEventListener('submit', ev => {
-			ev.preventDefault()
-			this.onTextInput();
-		});
-		this.textInput.addEventListener('focus', () => this.textInputFocused = true);
-		this.textInput.addEventListener('blur', ev => {
-			this.textInputFocused = false;
-			if (ev.relatedTarget) this.onTextInput();
-		});
-
+		this.svg.addEventListener('wheel', this.onWheel.bind(this));
 		this.allowTouch = true;
 		this.svg.addEventListener('touchstart', ev => {
 			if (ev.touches.length == 2 && this.allowTouch) {
@@ -328,6 +305,15 @@ class Transcribe extends HTMLElement {
 			this.touches = undefined;
 			this.allowTouch = false;
 			setTimeout(() => this.allowTouch = true, 200);
+		});
+		this.textInput.parentElement.addEventListener('submit', ev => {
+			ev.preventDefault()
+			this.onTextInput();
+		});
+		this.textInput.addEventListener('focus', () => this.textInputFocused = true);
+		this.textInput.addEventListener('blur', ev => {
+			this.textInputFocused = false;
+			if (ev.relatedTarget) this.onTextInput();
 		});
 	}
 
@@ -408,7 +394,7 @@ class Transcribe extends HTMLElement {
 	 */
 	onPointerDown(ev) {
 		this.pos = new DOMPoint(ev.x, ev.y);
-		if (ev.button != 0) return;
+		if (ev.button != 0 || ev.target == this.textInput) return ev.stopPropagation();
 		this.startPosView = this.toViewport(ev.x, ev.y);
 		ev.preventDefault();
 
@@ -444,7 +430,10 @@ class Transcribe extends HTMLElement {
 		}
 	}
 
-	onDocumentPointerDown() {
+	/**
+	 * @param {PointerEvent} ev
+	 */
+	onDocumentPointerDown(ev) {
 		if (this.textInputFocused) this.onTextInput();
 	}
 
@@ -514,7 +503,7 @@ class Transcribe extends HTMLElement {
 			for (let i = 0; i < this.words.children.length; i++) {
 				const c = this.words.children[i];
 				const bbox = c.getBoundingClientRect();
-				if (isOverlapping(bselectDrag, bbox)) {
+				if (rectsOverlap(bselectDrag, bbox)) {
 					c.classList.add('selected');
 				} else {
 					c.classList.remove('selected');
@@ -529,9 +518,9 @@ class Transcribe extends HTMLElement {
 	 * @param {PointerEvent} ev
 	 */
 	onPointerUp(ev) {
-		ev.preventDefault();
 		this.popCursor();
-		if (ev.button != 0) return;
+		if (ev.button != 0 || ev.target == this.textInput) return;
+		ev.preventDefault();
 
 		if (this.tool == 'text') {
 			const bbox = this.selectDrag.getBBox();
@@ -545,6 +534,26 @@ class Transcribe extends HTMLElement {
 		this.startPosView = undefined;
 		this.selected = undefined;
 		this.pathPoint = undefined;
+	}
+
+	/**
+	 * @param {WheelEvent} ev
+	 */
+	onWheel(ev) {
+		const dir = ev.deltaY < 0 ? 1 : -1;
+		const origin = new DOMPoint(ev.x, ev.y).matrixTransform(this.svg.getScreenCTM().inverse());
+		if (ev.shiftKey) {
+			this.transform = new DOMMatrix()
+				.translate(origin.x, origin.y)
+				.rotate(dir * rotMult)
+				.translate(-origin.x, -origin.y)
+				.multiply(this.transform);
+		} else {
+			const scale = 1 + dir * zoomMult;
+			this.transform = new DOMMatrix()
+				.scale(scale, scale, 1, origin.x, origin.y)
+				.multiply(this.transform);
+		}
 	}
 
 	/**
