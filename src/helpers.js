@@ -58,18 +58,19 @@ export function fmtCommands(cmds) {
 		.join(' ');
 }
 
-/** @param {SVGGElement} svg */
-export function getTransform(svg) {
-	const g = svg.firstElementChild;
-	return g.transform.baseVal[0].matrix;
+/**
+ * @param {SVGElement} g
+ * @returns {SVGMatrix}
+ */
+export function getTransform(g) {
+	return g?.transform?.baseVal[0]?.matrix ?? g.ownerSVGElement.createSVGMatrix();
 }
 /**
- * @param {SVGGElement} svg
- * @param {SVGMatrix} newValue
- * */
-export function setTransform(svg, newValue) {
-	/** @type {SVGGElement} */
-	const g = svg.firstElementChild;
+ * @param {SVGElement} svg
+ * @param {DOMMatrix} newValue
+ */
+export function setTransform(g, newValue) {
+	// While more efficient, this doesn't reflect back to DOM and so is undesirable.
 	// g.transform.baseVal[0].setMatrix(newValue);
 	g.setAttribute('transform', `matrix(${newValue.a}, ${newValue.b}, ${newValue.c}, ${newValue.d}, ${newValue.e}, ${newValue.f})`);
 }

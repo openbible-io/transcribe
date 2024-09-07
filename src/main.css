@@ -117,6 +117,7 @@ h6 {
 .editor {
 	--font: 16px Arial;
 	--select-stroke: blue;
+	--view-scale: 1;
 	touch-action: none;
 	flex: 1;
 	fill: black;
@@ -124,14 +125,17 @@ h6 {
 	stroke-width: 1;
 	user-select: none;
 }
-.word {
+.editor.pan { cursor: grab; }
+.editor.text { cursor: crosshair; }
+.span {
 	stroke: none;
 }
-.editor.select .word:hover:not(.selected) > path {
+.editor.select .span:hover:not(.selected) > path,
+.editor.select image:hover:not(.selected) {
 	stroke-dasharray: 4;
 	stroke: var(--select-stroke);
 }
-.editor.select .word.selected > path {
+.span.selected > path {
 	stroke: var(--select-stroke);
 }
 #textInput {
@@ -166,12 +170,13 @@ foreignObject:has(#textInput:focus) {
 }
 .editor.select #pathPoints > circle {
 	r: 4px;
-	cursor: pointer;
+	cursor: move;
 }
 #selectDrag {
 	fill: rgba(0, 0, 255, 0.2);
 }
 #selectGroup {
+	cursor: move;
 	fill: none;
 }
 textPath {
@@ -180,4 +185,7 @@ textPath {
 text[lang=he],
 #textInput[lang=he] {
 	dominant-baseline: hanging;
+}
+#ui {
+	stroke-width: calc(1 / var(--view-scale));
 }

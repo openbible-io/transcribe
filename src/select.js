@@ -1,4 +1,4 @@
-import { fmtPoint, parseCommands, fmtCommands, rectsOverlap, matrixScale, getTransform } from './helpers.js';
+import { fmtPoint, parseCommands, fmtCommands, rectsOverlap, matrixScale, getTransform, setTransform } from './helpers.js';
 const xmlns = 'http://www.w3.org/2000/svg';
 
 export class Select {
@@ -7,43 +7,37 @@ export class Select {
 		this.svg = svg;
 
 		/** @type {SVGGElement} */
-		this.words = svg.getElementById('words');
+		this.view = svg.getElementById('view');
 		/** @type {SVGGElement} */
-		this.pathPoints = svg.getElementById('pathPoints');
+		this.ui = svg.getElementById('ui');
 		/** @type {SVGPathElement} */
 		this.selectDrag = svg.getElementById('selectDrag');
 		/** @type {SVGPathElement} */
 		this.selectGroup = svg.getElementById('selectGroup');
+		this.selectable = 'g.span';
 	}
 
-	/** @param {PointerEvent} ev */
-	pointerdown(ev) {
+	/**
+	 * @param {PointerEvent} ev
+	 * @param {string} tool
+	 */
+	pointerdown(ev, tool) {
 		this.pos = new DOMPoint(ev.x, ev.y);
 		this.posView = this.toViewport(ev.x, ev.y);
-		if (ev.target.parentElement == this.pathPoints) {
-			/** @type {SVGCircleElement} */
-			this.pathPoint = ev.target;
-			return true;
+
+		if (tool != 'select') return;
+		/** @type {SVGElement} */
+		const selectable = ev.target.closest(this.selectable);
+		if (ev.shiftKey) {
+			this.add = true;
+		} else {
+			this.selectNone();
 		}
-
-		// selecting word?
-		if (!ev.shiftKey) this.selectNone();
-		console.log(ev.shiftKey, ev.target);
-		/** @type {SVGGElement} */
-		const word = ev.target.closest('g.word');
-		if (word) {
+		if (selectable) {
 			this.posView = undefined; // don't make a select box
-			word.classList.toggle('selected');
-
-			const selections = this.words.getElementsByClassName('selected');
-			const isOnlySelection = selections.length == 1 && word == selections.item(0);
-			if (isOnlySelection) {
-				this.startPathEdit(word);
-			} else {
-				this.pathPoints.replaceChildren();
-			}
-
-			this.updateSelectGroup(selections);
+			selectable.classList.toggle('selected');
+			this.updateSelectGroup();
+			return true;
 		}
 	}
 
@@ -52,84 +46,104 @@ export class Select {
 	 * @param {string} tool
 	 * */
 	pointermove(ev, tool) {
-		const posOld = this.pos;
-		this.pos = new DOMPoint(ev.x, ev.y);
+		// const posOld = this.pos;
+		// this.pos = new DOMPoint(ev.x, ev.y);
+		// const clientDx = this.pos.x - posOld.x;
+		// const clientDy = this.pos.y - posOld.y;
+		// const scale = matrixScale(this.svg.getScreenCTM()) * matrixScale(getTransform(this.svg.firstElementChild));
+		// const d = new DOMPoint(clientDx / scale, clientDy / scale);
 
-		if (this.pathPoint) {
-			/** @type {SVGGElement} */
-			const word = this.pathPoint.parentElement.parentElement;
-			const wordTransform = word.transform.baseVal[0].matrix;
+		// if (this.movingPathPoint) {
+		// 	/** @type {SVGGElement} */
+		// 	const span = this.movingPathPoint.parentElement.parentElement;
+		// 	const spanTransform = getTransform(span);
+		// 	d.x /= matrixScale(spanTransform);
+		// 	d.y /= matrixScale(spanTransform);
+		// 	const point = new DOMPoint(
+		// 		this.movingPathPoint.cx.baseVal.value + d.x,
+		// 		this.movingPathPoint.cy.baseVal.value + d.y,
+		// 	);
+		// 	// move circle
+		// 	this.movingPathPoint.cx.baseVal.value = point.x;
+		// 	this.movingPathPoint.cy.baseVal.value = point.y;
+		// 	const cmdI = +this.movingPathPoint.getAttribute('data-command');
+		// 	const pointI = +this.movingPathPoint.getAttribute('data-point');
+		// 	// move path
+		// 	this.commands[cmdI].coords[pointI] = point.x;
+		// 	this.commands[cmdI].coords[pointI + 1] = point.y;
+		// 	this.path.setAttribute('d', fmtCommands(this.commands));
+		// 	this.path.nextElementSibling.setAttribute('textLength', this.path.getTotalLength());
 
-			const clientDx = this.pos.x - posOld.x;
-			const clientDy = this.pos.y - posOld.y;
-			const scale = matrixScale(this.svg.getScreenCTM()) *
-				matrixScale(getTransform(this.svg)) *
-				matrixScale(wordTransform);
-			const d = new DOMPoint(clientDx / scale, clientDy / scale);
-			const point = new DOMPoint(
-				this.pathPoint.cx.baseVal.value + d.x,
-				this.pathPoint.cy.baseVal.value + d.y,
-			);
-			// move circle
-			this.pathPoint.cx.baseVal.value = point.x;
-			this.pathPoint.cy.baseVal.value = point.y;
-			const cmdI = +this.pathPoint.getAttribute('data-command');
-			const pointI = +this.pathPoint.getAttribute('data-point');
-			// move path
-			this.commands[cmdI].coords[pointI] = point.x;
-			this.commands[cmdI].coords[pointI + 1] = point.y;
-			this.path.setAttribute('d', fmtCommands(this.commands));
-			this.path.nextElementSibling.setAttribute('textLength', this.path.getTotalLength());
+		// 	this.updateSelectGroup();
 
-			const selections = this.words.getElementsByClassName('selected');
-			this.updateSelectGroup(selections);
+		// 	return true;
+		// } else if (this.movingSelected) {
+		// 	const transform = this.svg.createSVGMatrix().translate(d.x, d.y);
+		// 	const selections = this.view.getElementsByClassName('selected');
+		// 	for (let i = 0; i < selections.length; i++) {
+		// 		/** @type {SVGGElement | SVGImageElement} */
+		// 		const selectable = selections[i];
+		// 		setTransform(selectable, transform.multiply(getTransform(selectable)));
+		// 	}
 
-			return true;
-		}
+		// 	this.updateSelectGroup();
+		// 	return true;
+		// }
 
 		const start = this.posView;
 		if (!start) return;
 		const pos = this.toViewport(ev.x, ev.y);
 		const width = (pos.x - start.x).toFixed(0);
 		const height = (pos.y - start.y).toFixed(0);
+
 		this.selectDrag.setAttribute('d', `M${fmtPoint(start)} h${width} v${height} h${-width}Z`);
 
 		if (tool == 'select') {
 			const selectDragBBox = this.selectDrag.getBoundingClientRect();
+			const selectable = this.view.querySelectorAll(this.selectable);
 
-			for (let i = 0; i < this.words.children.length; i++) {
-				const c = this.words.children[i];
+			for (let i = 0; i < selectable.length; i++) {
+				const c = selectable[i];
 				const bbox = c.getBoundingClientRect();
 				if (rectsOverlap(selectDragBBox, bbox)) {
-					c.classList.add('selected');
-				} else {
-					c.classList.remove('selected');
+					if (!c.classList.contains('selected')) {
+						c.classList.add('selected', 'boxed');
+					}
+				} else if (c.classList.contains('boxed')) {
+					c.classList.remove('selected', 'boxed');
 				}
 			}
+			this.updateSelectGroup();
 		}
 
 		return true;
 	}
 
 	pointerup() {
-		const selections = this.words.getElementsByClassName('selected');
-		this.updateSelectGroup(selections);
+		const selections = this.view.getElementsByClassName('boxed');
+		for (let i = 0; i < selections.length; i++) selections[i].classList.remove('boxed');
 
 		this.selectDrag.setAttribute('d', '');
-		this.pathPoint = undefined;
+		this.pos = undefined;
 		this.posView = undefined;
+		this.add = undefined;
 	}
 
 	/**
-	 * @param {HTMLCollectionOf<SVGGElement>} selections
+	 * Resize selection group box.
+	 * Start path editing if there is only one selection.
+	 * @param {boolean} startEdit
+	 * @returns {boolean} if there is only a single selection
 	 */
-	updateSelectGroup(selections) {
+	updateSelectGroup() {
+		const selections = this.view.getElementsByClassName('selected');
 		const min = new DOMPoint(Infinity, Infinity);
 		const max = new DOMPoint(-Infinity, -Infinity);
+		this.selectGroup.setAttribute('d', '');
 		for (let i = 0; i < selections.length; i++) {
 			/** @type {SVGRect} */
 			const rect = selections.item(i).getBBox();
-			const rectMatrix = new DOMMatrix(selections.item(i).getAttribute('transform'));
+			const rectMatrix = new DOMMatrix(selections.item(i).getAttribute('transform') ?? '');
 			const minPoint = new DOMPoint(rect.x, rect.y).matrixTransform(rectMatrix);
 			const maxPoint = new DOMPoint(rect.x + rect.width, rect.y + rect.height).matrixTransform(rectMatrix);
 
@@ -144,21 +158,22 @@ export class Select {
 	}
 
 	selectNone() {
-		for (let i = 0; i < this.words.children.length; i++) {
-			this.words.children[i].classList.remove('selected');
+		for (let i = 0; i < this.view.children.length; i++) {
+			this.view.children[i].classList.remove('selected');
 		}
 		this.selectGroup.setAttribute('d', '');
-		this.pathPoints.replaceChildren();
+		this.selectGroup.setAttribute('transform', new DOMMatrix().toString());
 	}
 
 	/**
-	 * @param {SVGGElement} word
+	 * @param {SVGGElement} span
 	 */
-	startPathEdit(word) {
+	startPathEdit(span) {
+		if (span.contains(this.pathPoints) && this.pathPoints.children.length > 0 || span.tagName != 'g') return;
 		this.pathPoints.replaceChildren();
-		word.append(this.pathPoints);
+		span.append(this.pathPoints);
 		/** @type {SVGPathElement} */
-		this.path = word.firstElementChild;
+		this.path = span.firstElementChild;
 		this.commands = parseCommands(this.path.getAttribute('d'));
 		for (let i = 0; i < this.commands.length; i++) {
 			const cmd = this.commands[i];
@@ -179,7 +194,6 @@ export class Select {
 	 */
 	toViewport(clientX, clientY) {
 		return new DOMPoint(clientX, clientY)
-			.matrixTransform(this.svg.getScreenCTM().inverse())
-			.matrixTransform(getTransform(this.svg).inverse());
+			.matrixTransform(this.svg.getScreenCTM().multiply(getTransform(this.view)).inverse())
 	}
 }

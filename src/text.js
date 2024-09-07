@@ -1,9 +1,9 @@
 import { fmtPoint } from './helpers.js';
 
-const wordTemplate = document.createElement('template');
-wordTemplate.innerHTML = `
+const spanTemplate = document.createElement('template');
+spanTemplate.innerHTML = `
 <svg>
-<g class="word selected">
+<g class="span selected">
 	<path />
 	<text lengthAdjust="spacingAndGlyphs">
 		<textPath />
@@ -33,7 +33,7 @@ export class Text {
 	constructor(svg, onEnd) {
 		this.svg = svg;
 		/** @type {SVGGElement} */
-		this.words = svg.getElementById('words');
+		this.view = svg.getElementById('view');
 		/** @type {SVGForeignObjectElement} */
 		this.fo = svg.querySelector('foreignObject');
 		/** @type {HTMLInputElement} */
@@ -44,20 +44,12 @@ export class Text {
 		this.onEnd = onEnd;
 		/** @type {SVGPathElement} */
 		this.selectDrag = svg.getElementById('selectDrag');
-	}
 
-	registerListeners() {
 		this.textInput.parentElement.addEventListener('submit', ev => {
 			ev.preventDefault()
 			this.end();
 		});
 		this.textInput.addEventListener('blur', ev => ev.relatedTarget && this.end());
-
-		document.addEventListener('pointerdown', this.onDocumentPointerDown.bind(this));
-	}
-
-	unregisterListeners() {
-		document.removeEventListener('pointerdown', this.onDocumentPointerDown.bind(this));
 	}
 
 	/** @param {DOMRect} bbox */
@@ -86,18 +78,18 @@ export class Text {
 
 	end() {
 		/** @type {SVGGElement} */
-		const word = wordTemplate.content.cloneNode(true).querySelector('g');
-		word.lastElementChild.setAttribute('lang', this.svg.getAttribute('lang'));
-		word.setAttribute('transform', this.fo.getAttribute('transform'));
+		const span = spanTemplate.content.cloneNode(true).querySelector('g');
+		span.lastElementChild.setAttribute('lang', this.svg.getAttribute('lang'));
+		span.setAttribute('transform', this.fo.getAttribute('transform'));
 		/** @type {SVGPathElement} */
-		const path = word.querySelector('path');
-		path.id = `word${this.words.children.length}`;
+		const path = span.querySelector('path');
+		path.id = `span${this.view.children.length}`;
 
 		/** @type {SVGTextPathElement} */
-		const textPath = word.querySelector('textPath');
+		const textPath = span.querySelector('textPath');
 		textPath.setAttribute('href', `#${path.id}`);
 		textPath.textContent = this.textInput.value;
-		this.words.appendChild(word);
+		this.view.appendChild(span);
 
 		const metrics = fontMetrics(this.textInput);
 		const p1 = new DOMPoint(
@@ -110,7 +102,7 @@ export class Text {
 		this.textInput.value = '';
 		this.fo.style.display = 'none';
 		this.textInput.blur();
-		this.onEnd(word);
+		this.onEnd(span);
 	}
 
 	/** @param {string} tool */
@@ -120,7 +112,7 @@ export class Text {
 		if (bbox.width > 1 && bbox.height > 1) this.start(bbox);
 	}
 
-	onDocumentPointerDown() {
+	pointerdownDoc() {
 		if (this.fo.style.display == 'block') this.end();
 	}
 }
