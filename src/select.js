@@ -15,6 +15,10 @@ export class Select {
 		this.selectDrag = svg.getElementById('selectDrag');
 		/** @type {SVGPathElement} */
 		this.selectGroup = svg.getElementById('selectGroup');
+		/** @type {SVGPathElement} */
+		this.selectGroupTop = svg.getElementById('selectGroupTop');
+		/** @type {SVGPathElement} */
+		this.selectGroupBot = svg.getElementById('selectGroupBot');
 
 		this.path = new Path(svg, this.updateSelectGroup.bind(this));
 		this.transform = new Transform(svg, this.updateSelectGroup.bind(this));
@@ -125,6 +129,8 @@ export class Select {
 		const min = new DOMPoint(Infinity, Infinity);
 		const max = new DOMPoint(-Infinity, -Infinity);
 		this.selectGroup.setAttribute('d', '');
+		this.selectGroupTop.setAttribute('d', '');
+		this.selectGroupBot.setAttribute('d', '');
 		for (let i = 0; i < selections.length; i++) {
 			/** @type {SVGRect} */
 			const rect = selections.item(i).getBBox();
@@ -138,7 +144,13 @@ export class Select {
 			if (maxPoint.y > max.y) max.y = maxPoint.y;
 		}
 		if (min.x != Infinity && max.y != -Infinity) {
-			this.selectGroup.setAttribute('d', `M${min.x},${min.y} h${max.x - min.x} v${max.y - min.y} h${min.x - max.x}Z`);
+			const width = max.x - min.x;
+			const height = max.y - min.y;
+			this.selectGroup.setAttribute('d', `M${min.x},${min.y} h${width} v${height} h${-width}Z`);
+			const controlWidth = 16;
+			const controlX = (width - controlWidth) / 2;
+			this.selectGroupTop.setAttribute('d', `M${min.x + controlX},${min.y - controlWidth / 2} h${controlWidth} v${controlWidth} h${-controlWidth}Z`);
+			this.selectGroupBot.setAttribute('d', `M${min.x + controlX},${max.y - controlWidth / 2} h${controlWidth} v${controlWidth} h${-controlWidth}Z`);
 		}
 	}
 
@@ -147,6 +159,8 @@ export class Select {
 			this.view.children[i].classList.remove('selected');
 		}
 		this.selectGroup.setAttribute('d', '');
+		this.selectGroupTop.setAttribute('d', '');
+		this.selectGroupBot.setAttribute('d', '');
 		this.selectGroup.setAttribute('transform', new DOMMatrix().toString());
 		this.path.selectNone();
 	}

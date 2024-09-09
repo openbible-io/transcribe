@@ -130,13 +130,19 @@ h6 {
 .span {
 	stroke: none;
 }
-.editor.select .span:hover:not(.selected) > path,
-.editor.select image:hover:not(.selected) {
+.editor.select .span:not(.selected):hover > path {
 	stroke-dasharray: 4;
 	stroke: var(--select-stroke);
 }
+.editor.select .span.selected:hover {
+	cursor: move;
+}
+.editor.select .span.selected:hover > path {
+	stroke-width: calc(2 / var(--view-scale));
+}
 .span.selected > path {
 	stroke: var(--select-stroke);
+	stroke-width: calc(1 / var(--view-scale));
 }
 #textInput {
 	outline: none;
@@ -148,7 +154,7 @@ h6 {
 	min-height: 0;
 }
 foreignObject:has(#textInput:focus) {
-	outline: 1px solid blue;
+	outline: calc(1 / var(--view-scale)) solid blue;
 }
 .toolbar {
 	position: fixed;
@@ -176,7 +182,6 @@ foreignObject:has(#textInput:focus) {
 	fill: rgba(0, 0, 255, 0.2);
 }
 #selectGroup {
-	cursor: move;
 	fill: none;
 }
 textPath {
@@ -188,4 +193,8 @@ text[lang=he],
 }
 #ui {
 	stroke-width: calc(1 / var(--view-scale));
+}
+#selectGroupTop, #selectGroupBot {
+	cursor: ns-resize;
+	fill: transparent;
 }
