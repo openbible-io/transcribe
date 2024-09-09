@@ -39,8 +39,12 @@ export class Select {
 		}
 		if (selectable) {
 			this.posView = undefined; // don't make a select box
-			selectable.classList.toggle('selected');
-			this.updateSelectGroup();
+			if (selectable.classList.contains('selected')) {
+				this.toUnselect = selectable;
+			} else {
+				selectable.classList.add('selected');
+				this.updateSelectGroup();
+			}
 			if (this.transform.pointerdown(ev, tool)) return;
 			return true;
 		}
@@ -51,8 +55,14 @@ export class Select {
 	 * @param {string} tool
 	 */
 	pointermove(ev, tool) {
-		if (this.path.pointermove(ev, tool)) return;
-		if (this.transform.pointermove(ev, tool)) return;
+		if (this.path.pointermove(ev, tool)) {
+			this.moveHandled = true;
+			return;
+		}
+		if (this.transform.pointermove(ev, tool)) {
+			this.moveHandled = true;
+			return;
+		}
 
 		if (tool == 'select' || tool == 'text') {
 			const start = this.posView;
@@ -62,12 +72,12 @@ export class Select {
 			const height = (pos.y - start.y).toFixed(0);
 
 			this.selectDrag.setAttribute('d', `M${fmtPoint(start)} h${width} v${height} h${-width}Z`);
-			return true;
+			if (tool == 'text') return true;
 		}
 
 		if (tool == 'select') {
 			const selectDragBBox = this.selectDrag.getBoundingClientRect();
-			const selectable = this.view.querySelectorAll(selectable);
+			const selectable = this.view.querySelectorAll(selectableSelector);
 
 			for (let i = 0; i < selectable.length; i++) {
 				const c = selectable[i];
@@ -86,15 +96,21 @@ export class Select {
 	}
 
 	pointerup() {
+		if (this.toUnselect && !this.moveHandled) {
+			this.toUnselect.classList.remove('selected');
+			this.updateSelectGroup();
+		}
 		this.path.pointerup();
 		this.transform.pointerup();
 
 		const boxed = this.view.getElementsByClassName('boxed');
-		for (let i = 0; i < boxed.length; i++) boxed[i].classList.remove('boxed');
+		while (boxed.length) boxed[0].classList.remove('boxed');
 		this.selectDrag.setAttribute('d', '');
 		this.pos = undefined;
 		this.posView = undefined;
 		this.add = undefined;
+		this.toUnselect = undefined;
+		this.moveHandled = undefined;
 	}
 
 	/**

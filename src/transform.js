@@ -55,6 +55,8 @@ export class Transform {
 	}
 
 	pointerup() {
+		const res = this.translating;
 		this.translating = undefined;
+		return res;
 	}
 }

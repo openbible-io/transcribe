@@ -77,7 +77,9 @@ export class Path {
 			this.updateSelectGroup();
 		}
 		this.pos = undefined;
+		const res = this.movingPathPoint != undefined;
 		this.movingPathPoint = undefined;
+		return res;
 	}
 
 	/**
