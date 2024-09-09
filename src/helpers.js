@@ -74,3 +74,6 @@ export function setTransform(g, newValue) {
 	// g.transform.baseVal[0].setMatrix(newValue);
 	g.setAttribute('transform', `matrix(${newValue.a}, ${newValue.b}, ${newValue.c}, ${newValue.d}, ${newValue.e}, ${newValue.f})`);
 }
+
+export const xmlns = 'http://www.w3.org/2000/svg';
+export const selectableSelector = 'g.span';
