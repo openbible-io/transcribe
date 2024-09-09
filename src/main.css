@@ -153,8 +153,8 @@ h6 {
 	width: 100%;
 	min-height: 0;
 }
-foreignObject:has(#textInput:focus) {
-	outline: calc(1 / var(--view-scale)) solid blue;
+foreignObject {
+	outline: calc(1px / var(--view-scale)) solid blue;
 }
 .toolbar {
 	position: fixed;

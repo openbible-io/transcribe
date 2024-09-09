@@ -1,2 +1,6 @@
 rich text edit
+	- delete span
+	- remove diacritics
+	- subspan editing
 undo/redo
+OCR (google or tesseract)

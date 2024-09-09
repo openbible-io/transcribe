@@ -22,6 +22,8 @@ export class Select {
 
 		this.path = new Path(svg, this.updateSelectGroup.bind(this));
 		this.transform = new Transform(svg, this.updateSelectGroup.bind(this));
+
+		this.selections = this.view.getElementsByClassName('selected');
 	}
 
 	/**
@@ -48,6 +50,8 @@ export class Select {
 			}
 			if (this.transform.pointerdown(ev, tool)) return;
 			return true;
+		} else if (!ev.shiftKey) {
+			this.selectNone();
 		}
 	}
 
@@ -120,17 +124,16 @@ export class Select {
 	 * @returns {boolean} if there is only a single selection
 	 */
 	updateSelectGroup() {
-		const selections = this.view.getElementsByClassName('selected');
-		if (selections.length != 1) this.path.selectNone();
+		if (this.selections.length != 1) this.path.selectNone();
 		const min = new DOMPoint(Infinity, Infinity);
 		const max = new DOMPoint(-Infinity, -Infinity);
 		this.selectGroup.setAttribute('d', '');
 		this.selectGroupTop.setAttribute('d', '');
 		this.selectGroupBot.setAttribute('d', '');
-		for (let i = 0; i < selections.length; i++) {
+		for (let i = 0; i < this.selections.length; i++) {
 			/** @type {SVGRect} */
-			const rect = selections.item(i).getBBox();
-			const rectMatrix = new DOMMatrix(selections.item(i).getAttribute('transform') ?? '');
+			const rect = this.selections[i].getBBox();
+			const rectMatrix = new DOMMatrix(this.selections[i].getAttribute('transform') ?? '');
 			const minPoint = new DOMPoint(rect.x, rect.y).matrixTransform(rectMatrix);
 			const maxPoint = new DOMPoint(rect.x + rect.width, rect.y + rect.height).matrixTransform(rectMatrix);
 
@@ -151,9 +154,7 @@ export class Select {
 	}
 
 	selectNone() {
-		for (let i = 0; i < this.view.children.length; i++) {
-			this.view.children[i].classList.remove('selected');
-		}
+		while (this.selections.length) this.selections[0].classList.remove('selected');
 		this.selectGroup.setAttribute('d', '');
 		this.selectGroupTop.setAttribute('d', '');
 		this.selectGroupBot.setAttribute('d', '');

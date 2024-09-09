@@ -19,7 +19,8 @@ export class Transcribe {
 		this.select = new Select(this.svg);
 		this.text = new Text(this.svg, span => {
 			this.tool = 'select';
-			// this.select.startPathEdit(span);
+			this.select.path.showPoints(span);
+			this.select.updateSelectGroup();
 		});
 		this.tool = 'select'; // custom setter pushes state to DOM
 		root.querySelectorAll('[name="tool"]')
@@ -37,6 +38,10 @@ export class Transcribe {
 			ev.posView = this.toViewport(ev.x, ev.y);
 
 			if (this.panZoomRot.pointerdown(ev, this.tool)) return;
+			if (this.text.pointerdown(ev, this.tool)) {
+				this.tool = 'text';
+				return;
+			}
 			if (this.select.pointerdown(ev, this.tool)) return;
 		});
 		this.svg.addEventListener('pointermove', ev => {

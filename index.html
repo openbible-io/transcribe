@@ -25,23 +25,25 @@
 		<svg xmlns="http://www.w3.org/2000/svg" class="editor" lang="en">
 			<g id="view">
 				<image opacity="0.5" href="./data/eurotext.png" />
-				<g class="span" transform="matrix(1.8333, 0, 0, 1.8333, -50.833, -30)">
-					<path id="span0" d="M61,50 L313,50"></path>
-					<text lengthAdjust="spacingAndGlyphs" lang="en" textLength="252">
-						<textPath href="#span0">The (quick) [brown] {fox} jumps!</textPath>
-					</text>
-				</g>
-				<g class="span" transform="matrix(1.8333, 0, 0, 1.8333, -50, -110)">
-					<path id="span1" d="M60,146 L341,146"></path>
-					<text lengthAdjust="spacingAndGlyphs" lang="en" textLength="281">
-						<textPath href="#span1">from aspammer@website.com is spam.</textPath>
-					</text>
-				</g>
-				<g class="span" transform="matrix(1.722, 0, 0, 1.7222, -41.1667, -185.6111)">
-					<path id="span2" d="M57,271 L339,271"></path>
-					<text lengthAdjust="spacingAndGlyphs" lang="en" textLength="282">
-						<textPath href="#span2">parasseux. La volpe marrone rapida</textPath>
-					</text>
+				<g id="transcription">
+					<g class="span" transform="matrix(1.8333, 0, 0, 1.8333, -50.833, -30)">
+						<path id="span0" d="M61,50 L313,50"></path>
+						<text lengthAdjust="spacingAndGlyphs" lang="en" textLength="252">
+							<textPath href="#span0">The (quick) [brown] {fox} jumps!</textPath>
+						</text>
+					</g>
+					<g class="span" transform="matrix(1.8333, 0, 0, 1.8333, -50, -110)">
+						<path id="span1" d="M60,146 L341,146"></path>
+						<text lengthAdjust="spacingAndGlyphs" lang="en" textLength="281">
+							<textPath href="#span1">from aspammer@website.com is spam.</textPath>
+						</text>
+					</g>
+					<g class="span" transform="matrix(1.722, 0, 0, 1.7222, -41.1667, -185.6111)">
+						<path id="span3" d="M57,271 L339,271"></path>
+						<text lengthAdjust="spacingAndGlyphs" lang="en" textLength="282">
+							<textPath href="#span3">parasseux. La volpe marrone rapida</textPath>
+						</text>
+					</g>
 				</g>
 				<!-- UI is in view so transforms do not have to be applied twice -->
 				<g id="ui">
@@ -49,7 +51,7 @@
 					<path id="selectGroup" />
 					<path id="selectGroupTop" />
 					<path id="selectGroupBot" />
-					<foreignObject display="none">
+					<foreignObject>
 						<form>
 							<input id="textInput" enterkeyhint="done">
 						</form>
