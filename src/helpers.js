@@ -77,3 +77,14 @@ export function setTransform(g, newValue) {
 
 export const xmlns = 'http://www.w3.org/2000/svg';
 export const selectableSelector = 'g.span';
+
+/**
+ * @param {SVGSVGElement} svg
+ * @param {number} clientX
+ * @param {number} clientY
+ */
+export function toViewport(svg, clientX, clientY) {
+	const view = svg.getElementById('view');
+	return new DOMPoint(clientX, clientY)
+		.matrixTransform(svg.getScreenCTM().multiply(getTransform(view)).inverse())
+}

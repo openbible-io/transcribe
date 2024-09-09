@@ -1,4 +1,4 @@
-import { fmtPoint, rectsOverlap, getTransform, selectableSelector } from './helpers.js';
+import { fmtPoint, rectsOverlap, selectableSelector } from './helpers.js';
 import { Path } from './path.js';
 import { Transform } from './transform.js';
 
@@ -30,22 +30,19 @@ export class Select {
 	 */
 	pointerdown(ev, tool) {
 		this.pos = new DOMPoint(ev.x, ev.y);
-		this.posView = this.toViewport(ev.x, ev.y);
+		/** @type {DOMPoint} */
+		this.posView = ev.posView;
 		if (this.path.pointerdown(ev, tool)) return;
 
 		if (tool != 'select') return;
 		/** @type {SVGElement} */
 		const selectable = ev.target.closest(selectableSelector);
-		if (ev.shiftKey) {
-			this.add = true;
-		} else {
-			this.selectNone();
-		}
 		if (selectable) {
 			this.posView = undefined; // don't make a select box
 			if (selectable.classList.contains('selected')) {
 				this.toUnselect = selectable;
 			} else {
+				if (!ev.shiftKey) this.selectNone();
 				selectable.classList.add('selected');
 				this.updateSelectGroup();
 			}
@@ -71,7 +68,7 @@ export class Select {
 		if (tool == 'select' || tool == 'text') {
 			const start = this.posView;
 			if (!start) return;
-			const pos = this.toViewport(ev.x, ev.y);
+			const pos = ev.posView;
 			const width = (pos.x - start.x).toFixed(0);
 			const height = (pos.y - start.y).toFixed(0);
 
@@ -112,7 +109,6 @@ export class Select {
 		this.selectDrag.setAttribute('d', '');
 		this.pos = undefined;
 		this.posView = undefined;
-		this.add = undefined;
 		this.toUnselect = undefined;
 		this.moveHandled = undefined;
 	}
@@ -163,14 +159,5 @@ export class Select {
 		this.selectGroupBot.setAttribute('d', '');
 		this.selectGroup.setAttribute('transform', new DOMMatrix().toString());
 		this.path.selectNone();
-	}
-
-	/**
-	 * @param {clientX} number
-	 * @param {clientY} number
-	 */
-	toViewport(clientX, clientY) {
-		return new DOMPoint(clientX, clientY)
-			.matrixTransform(this.svg.getScreenCTM().multiply(getTransform(this.view)).inverse())
 	}
 }

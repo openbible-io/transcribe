@@ -1,4 +1,4 @@
-import { matrixScale, getTransform, setTransform, selectableSelector } from './helpers.js';
+import { matrixScale, getTransform, setTransform, selectableSelector, toViewport } from './helpers.js';
 
 export class Transform {
 	/**
@@ -40,12 +40,12 @@ export class Transform {
 	/** @param {PointerEvent} ev */
 	pointerdownControl(ev) {
 		const bbox = this.selectGroup.getBBox();
-		this.posView = this.toViewport(ev.x, ev.y);
+		/** @type {DOMPoint} */
+		this.posView = toViewport(this.svg, ev.x, ev.y);
 		this.scaleOrigin = new DOMPoint(
 			bbox.x,
 			bbox.y + (ev.target == this.selectGroupTop ? bbox.height : 0),
 		);
-		console.log(bbox);
 		ev.stopPropagation();
 	}
 
@@ -67,11 +67,10 @@ export class Transform {
 			}
 			if (this.scaleOrigin) {
 				const posViewOld = this.posView;
-				this.posView = this.toViewport(ev.x, ev.y);
+				this.posView = DOMPoint.fromPoint(ev.posView);
 				transform = transform
 					.translate(this.scaleOrigin.x, this.scaleOrigin.y);
 				transform.d *= (this.posView.y - this.scaleOrigin.y) / (posViewOld.y - this.scaleOrigin.y);
-				console.log(this.scaleOrigin);
 				transform = transform
 					.translate(-this.scaleOrigin.x, -this.scaleOrigin.y);
 			}
@@ -91,15 +90,7 @@ export class Transform {
 		const res = this.translating || this.scaling;
 		this.translating = undefined;
 		this.scaleOrigin = undefined;
+		this.posView = undefined;
 		return res;
-	}
-
-	/**
-	 * @param {clientX} number
-	 * @param {clientY} number
-	 */
-	toViewport(clientX, clientY) {
-		return new DOMPoint(clientX, clientY)
-			.matrixTransform(this.svg.getScreenCTM().multiply(getTransform(this.view)).inverse())
 	}
 }

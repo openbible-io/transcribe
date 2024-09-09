@@ -1,3 +1,4 @@
+import { toViewport } from './helpers.js';
 import { PanZoomRotate } from './pan.js';
 import { Touch } from './touch.js';
 import { Text } from './text.js';
@@ -33,11 +34,13 @@ export class Transcribe {
 		this.svg.addEventListener('pointerdown', ev => {
 			if (ev.target == this.textInput) return ev.stopPropagation();
 			ev.preventDefault();
+			ev.posView = this.toViewport(ev.x, ev.y);
 
 			if (this.panZoomRot.pointerdown(ev, this.tool)) return;
 			if (this.select.pointerdown(ev, this.tool)) return;
 		});
 		this.svg.addEventListener('pointermove', ev => {
+			ev.posView = this.toViewport(ev.x, ev.y);
 			// Ignore this event while touching or waiting for touch timeout.
 			if (this.touch.touches || !this.touch.allow) return;
 			// Give precedence to panning while using other tools.
@@ -48,6 +51,7 @@ export class Transcribe {
 		this.svg.addEventListener('pointerup', ev => {
 			if (ev.target == this.textInput) return;
 			ev.preventDefault();
+			ev.posView = this.toViewport(ev.x, ev.y);
 
 			if (this.panZoomRot.pointerup(ev, this.tool)) return;
 			if (this.text.pointerup(ev, this.tool)) return;
@@ -95,6 +99,14 @@ export class Transcribe {
 		this.svg.classList.remove(this.#tool);
 		this.svg.classList.add(newValue);
 		this.#tool = newValue;
+	}
+
+	/**
+	 * @param {number} clientX
+	 * @param {number} clientY
+	 */
+	toViewport(clientX, clientY) {
+		return toViewport(this.svg, clientX, clientY);
 	}
 }
 
