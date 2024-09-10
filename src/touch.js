@@ -1,3 +1,5 @@
+import { getTransform, setTransform } from './helpers.js';
+
 /**
  * @param {TouchList} touches
  */
@@ -23,12 +25,12 @@ function midpoint(touches) {
 }
 
 export class Touch {
-	/**
-	 * @param {SVGGElement} svg
-	 */
+	/** @param {SVGSVGElement} svg */
 	constructor(svg) {
-		this.allow = true;
 		this.svg = svg;
+		/** @type {SVGGElement} */
+		this.view = svg.getElementById('view');
+		this.allow = true;
 		this.svg.addEventListener('touchstart', this.touchstart.bind(this));
 		this.svg.addEventListener('touchmove', this.touchmove.bind(this));
 		this.svg.addEventListener('touchend', this.touchend.bind(this));
@@ -52,10 +54,7 @@ export class Touch {
 			if (!this.touches) return this.touchstart(ev);
 			ev.preventDefault();
 
-			/** @type {SVGGElement} */
-			const g = this.svg.firstElementChild;
-			const transform = g.transform.baseVal[0].matrix;
-
+			const transform = getTransform(this.view);
 			const scale = distance(ev.touches) / distance(this.touches);
 			const rotation = angle(ev.touches) - angle(this.touches);
 			const mpStart = midpoint(this.touches);
@@ -72,7 +71,7 @@ export class Touch {
 				.rotate(rotation)
 				.scale(scale)
 				.translate(-origin.x, -origin.y);
-			g.transform.baseVal[0].setMatrix(transform.multiply(touchTransform));
+			setTransform(this.view, transform.multiply(touchTransform));
 			this.touches = ev.touches;
 		}
 	}

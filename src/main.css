@@ -1,6 +1,7 @@
 html {
 	--primary-text-color: #3b4351;
 	--primary-theme-color: #0b8dc4;
+	--overlay-background: rgba(25, 25, 25, 0.8);
 	--primary-font-family: sans-serif;
 	--primary-font-size: 20px;
 }
@@ -169,7 +170,7 @@ foreignObject {
 .toolbar > * {
 	position: relative;
 	pointer-events: all;
-	background: gray;
+	background: var(--overlay-background);
 	display: flex;
 	align-items: center;
 	border-radius: 8px;
@@ -195,7 +196,6 @@ foreignObject {
 	position: absolute;
 	top: 0;
 	left: 0;
-	background: gray;
 }
 #pathPoints > circle {
 	r: 4px;

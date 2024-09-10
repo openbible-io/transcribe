@@ -77,18 +77,20 @@ export class Text {
 	}
 
 	end() {
-		/** @type {SVGGElement} */
-		const span = this.editing ?? spanTemplate.content.cloneNode(true).querySelector('g');
-		/** @type {SVGPathElement} */
-		const path = span.querySelector('path');
-		/** @type {SVGTextElement} */
-		const text = span.querySelector('text');
-		text.setAttribute('lang', this.textInput.getAttribute('lang'));
-		/** @type {SVGTextPathElement} */
-		const textPath = span.querySelector('textPath');
-		textPath.textContent = this.textInput.value;
+		if (this.editing) {
+			this.editing.removeAttribute('style');
+		} else if (this.textInput.value) {
+			/** @type {SVGGElement} */
+			const span = this.editing ?? spanTemplate.content.cloneNode(true).querySelector('g');
+			/** @type {SVGPathElement} */
+			const path = span.querySelector('path');
+			/** @type {SVGTextElement} */
+			const text = span.querySelector('text');
+			text.setAttribute('lang', this.textInput.getAttribute('lang'));
+			/** @type {SVGTextPathElement} */
+			const textPath = span.querySelector('textPath');
+			textPath.textContent = this.textInput.value;
 
-		if (!this.editing) {
 			span.setAttribute('transform', this.fo.getAttribute('transform'));
 			path.id = this.uid('span');
 			textPath.setAttribute('href', `#${path.id}`);
@@ -101,8 +103,6 @@ export class Text {
 			const p2 = new DOMPoint(p1.x + this.fo.width.baseVal.value, p1.y);
 			path.setAttribute('d', `M${fmtPoint(p1)} L${fmtPoint(p2)}`);
 			text.setAttribute('textLength', path.getTotalLength());
-		} else {
-			this.editing.removeAttribute('style');
 		}
 		this.editing = undefined;
 		this.textInput.value = '';
