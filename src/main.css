@@ -169,6 +169,27 @@ foreignObject {
 .toolbar > * {
 	position: relative;
 	pointer-events: all;
+	background: gray;
+	display: flex;
+	align-items: center;
+	border-radius: 8px;
+}
+.toolbar input {
+	position: absolute;
+	appearance: none;
+	outline: none;
+}
+.toolbar svg {
+	width: 2.5rem;
+	height: 2.5rem;
+	padding: 0.4rem;
+	margin: 0.4rem;
+	fill: white;
+	stroke: white;
+	border-radius: 8px;
+}
+.toolbar input:checked ~ svg {
+	background: blue;
 }
 .panelLeft {
 	position: absolute;

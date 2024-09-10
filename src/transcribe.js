@@ -8,7 +8,7 @@ export class Transcribe {
 	/** @param {HTMLElement} root */
 	constructor(root) {
 		/** @type {SVGSVGElement} */
-		this.svg = root.querySelector('svg');
+		this.svg = root.querySelector('svg.editor');
 		/** @type {SVGImageElement} */
 		this.img = root.querySelector('image');
 		/** @type {HTMLInputElement} */
