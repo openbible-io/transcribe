@@ -36,7 +36,7 @@ export class Select {
 		this.posView = ev.posView;
 		if (this.path.pointerdown(ev, tool)) return;
 
-		if (tool != 'select') return;
+		if (tool != 'select' && tool != 'text') return;
 		/** @type {SVGElement} */
 		const selectable = ev.target.closest(selectableSelector);
 		if (selectable) {

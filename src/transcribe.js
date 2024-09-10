@@ -17,12 +17,8 @@ export class Transcribe {
 		this.panZoomRot = new PanZoomRotate(this.svg);
 		this.touch = new Touch(this.svg);
 		this.select = new Select(this.svg);
-		this.text = new Text(this.svg, span => {
-			this.tool = 'select';
-			this.select.path.showPoints(span);
-			this.select.updateSelectGroup();
-		});
-		this.tool = 'select'; // custom setter pushes state to DOM
+		this.text = new Text(this.svg);
+		this.tool = 'text'; // custom setter pushes state to DOM
 		root.querySelectorAll('[name="tool"]')
 			.forEach(n => n.addEventListener('change', ev => this.tool = ev.target.id));
 
@@ -38,10 +34,7 @@ export class Transcribe {
 			ev.posView = this.toViewport(ev.x, ev.y);
 
 			if (this.panZoomRot.pointerdown(ev, this.tool)) return;
-			if (this.text.pointerdown(ev, this.tool)) {
-				this.tool = 'text';
-				return;
-			}
+			if (this.text.pointerdown(ev, this.tool)) return;
 			if (this.select.pointerdown(ev, this.tool)) return;
 		});
 		this.svg.addEventListener('pointermove', ev => {
@@ -71,6 +64,7 @@ export class Transcribe {
 
 	unregisterListeners() {
 		document.removeEventListener('pointerdown', this.pointerdownDoc.bind(this));
+		document.removeEventListener('keydown', this.keydownDoc.bind(this));
 		document.removeEventListener('keyup', this.keyupDoc.bind(this));
 	}
 
@@ -82,6 +76,7 @@ export class Transcribe {
 	/** @param {PointerEvent} ev */
 	keydownDoc(ev) {
 		if (this.panZoomRot.keydownDoc(ev, this.tool)) return;
+		if (this.text.keydownDoc(ev, this.tool)) return;
 	}
 
 	/** @param {PointerEvent} ev */
@@ -100,6 +95,7 @@ export class Transcribe {
 	get tool() { return this.#tool; }
 	set tool(newValue) {
 		document.getElementById(newValue).checked = true;
+		this.svg.style.cursor = '';
 		if (newValue != 'select') this.select.selectNone();
 		this.svg.classList.remove(this.#tool);
 		this.svg.classList.add(newValue);

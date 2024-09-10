@@ -3,7 +3,7 @@ import { fmtPoint, selectableSelector } from './helpers.js';
 const spanTemplate = document.createElement('template');
 spanTemplate.innerHTML = `
 <svg>
-<g class="span selected">
+<g class="span">
 	<path />
 	<text lengthAdjust="spacingAndGlyphs">
 		<textPath />
@@ -27,13 +27,8 @@ const dblClickMs = 500;
 const dblClickRadius = 8;
 
 export class Text {
-	/**
-	 * Inline text input handling.
-	 *
-	 * @param {SVGGSVGElement} svg
-	 * @param {string} lang
-	 */
-	constructor(svg, onEnd) {
+	/** @param {SVGGSVGElement} svg */
+	constructor(svg) {
 		this.svg = svg;
 		/** @type {SVGGElement} */
 		this.transcription = svg.getElementById('transcription');
@@ -45,7 +40,6 @@ export class Text {
 		/** @type {SVGPathElement} */
 		this.selectDrag = svg.getElementById('selectDrag');
 
-		this.onEnd = onEnd;
 		/** @type {SVGPathElement} */
 		this.selectDrag = svg.getElementById('selectDrag');
 
@@ -110,10 +104,10 @@ export class Text {
 		} else {
 			this.editing.removeAttribute('style');
 		}
+		this.editing = undefined;
 		this.textInput.value = '';
 		this.fo.style.display = 'none';
 		this.textInput.blur();
-		this.onEnd(span);
 	}
 
 	/**
@@ -159,6 +153,17 @@ export class Text {
 
 	pointerdownDoc() {
 		if (this.fo.style.display == 'block') this.end();
+	}
+
+	/** @param {KeyboardEvent} ev */
+	keydownDoc(ev) {
+		if (ev.key == 'Escape') {
+			if (this.editing) {
+				this.editing.removeAttribute('style');
+				this.editing = undefined;
+			}
+			this.fo.style.display = 'none';
+		}
 	}
 
 	/** @param {string} prefix */

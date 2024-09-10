@@ -12,39 +12,29 @@
 	<body>
 		<div class="toolbar">
 			<div>
-				<input type="radio" name="tool" id="pan">
-				<label for="pan">pan</label>
 				<input type="radio" name="tool" id="select">
 				<label for="select">select</label>
+				<input type="radio" name="tool" id="pan">
+				<label for="pan">pan</label>
 				<input type="radio" name="tool" id="text">
 				<label for="text">text</label>
-				<input type="radio" name="tool" id="ocr">
-				<label for="ocr">ocr</label>
 			</div>
 		</div>
 		<svg xmlns="http://www.w3.org/2000/svg" class="editor" lang="en">
 			<g id="view">
 				<image opacity="0.5" href="./data/eurotext.png" />
-				<g id="transcription">
-					<g class="span" transform="matrix(1.8333, 0, 0, 1.8333, -50.833, -30)">
-						<path id="span0" d="M61,50 L313,50"></path>
-						<text lengthAdjust="spacingAndGlyphs" lang="en" textLength="252">
-							<textPath href="#span0">The (quick) [brown] {fox} jumps!</textPath>
-						</text>
-					</g>
-					<g class="span" transform="matrix(1.8333, 0, 0, 1.8333, -50, -110)">
-						<path id="span1" d="M60,146 L341,146"></path>
-						<text lengthAdjust="spacingAndGlyphs" lang="en" textLength="281">
-							<textPath href="#span1">from aspammer@website.com is spam.</textPath>
-						</text>
-					</g>
-					<g class="span" transform="matrix(1.722, 0, 0, 1.7222, -41.1667, -185.6111)">
-						<path id="span3" d="M57,271 L339,271"></path>
-						<text lengthAdjust="spacingAndGlyphs" lang="en" textLength="282">
-							<textPath href="#span3">parasseux. La volpe marrone rapida</textPath>
-						</text>
-					</g>
-				</g>
+<g id="transcription">
+				<g class="span" transform="matrix(1.8657071590423584, 0, 0, 1.8657071590423584, -52.808135986328125, -32.031166076660156)">
+	<path id="span0" d="M61,51 L312,51"></path>
+	<text lengthAdjust="spacingAndGlyphs" lang="en" textLength="251">
+		<textPath href="#span0">The (quick) [brown] {fox} jumps!</textPath>
+	</text>
+</g><g class="span" transform="matrix(1.8775588274002075, 0, 0, 1.8775588274002075, -49.14329528808594, -334.34991455078125)">
+	<path id="span1" d="M56,395 L265,395"></path>
+	<text lengthAdjust="spacingAndGlyphs" lang="en" textLength="209">
+		<textPath href="#span1">salta sobre o cao preguicoso.</textPath>
+	</text>
+</g></g>
 				<!-- UI is in view so transforms do not have to be applied twice -->
 				<g id="ui">
 					<path id="selectDrag" />
@@ -60,13 +50,6 @@
 				</g>
 			</g>
 		</svg>
-		<div class="panelLeft">
-			<div>
-				<input id="fontSize" type="number" style="width: 5ch">
-				<input id="fontFamily">
-				<input id="fontColor" type="color">
-			</div>
-		</div>
 		<script type="module" src="src/transcribe.js"></script>
 	</body>
 </html>
