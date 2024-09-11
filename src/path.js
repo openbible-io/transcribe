@@ -1,4 +1,4 @@
-import { parseCommands, fmtCommands, matrixScale, getTransform, setTransform, xmlns } from './helpers.js';
+import { parseCommands, fmtCommands, matrixScale, getTransform, xmlns, setTransform } from './helpers.js';
 
 export class Path {
 	/**
@@ -16,93 +16,79 @@ export class Path {
 		this.pathPoints = svg.getElementById('pathPoints');
 	}
 
-	/**
-	 * @param {PointerEvent} ev
-	 * @param {string} tool
-	 */
-	pointerdown(ev, tool) {
-		this.pos = new DOMPoint(ev.x, ev.y);
+	/** @param {PointerEvent} ev */
+	pointerdown(ev) {
+		this.posView = ev.posView;
 		if (ev.target.tagName == 'circle') {
 			this.movingPathPoint = ev.target;
 			return true;
 		}
+
+		const selections = this.view.getElementsByClassName('selected');
+		if (selections.length != 1) return ;
+
+		this.span = selections[0];
+		/** @type {SVGPathElement} */
+		this.path = this.span.querySelector('path');
+
+		this.selectNone();
+		this.commands = parseCommands(this.path.getAttribute('d'));
+		this.updatePoints();
 	}
 
-	/**
-	 * @param {PointerEvent} ev
-	 * @param {string} tool
-	 */
-	pointermove(ev, tool) {
+	updatePoints() {
+		if (!this.commands || !this.span) return;
+		const transform = getTransform(this.span);
+		let pointI = 0;
+		for (let i = 0; i < this.commands.length; i++) {
+			const cmd = this.commands[i];
+
+			for (let j = 0; j < cmd.coords.length; j += 1) {
+				const existing = this.pathPoints.children[pointI++];
+				const circle = existing ?? document.createElementNS(xmlns, 'circle');
+				const viewPt = cmd.coords[j].matrixTransform(transform);
+				circle.cx.baseVal.value = viewPt.x;
+				circle.cy.baseVal.value = viewPt.y;
+				circle.setAttribute('data-command', i.toString());
+				circle.setAttribute('data-point', (j * 2).toString());
+				if (!existing) this.pathPoints.append(circle);
+			}
+		}
+	}
+
+	/** @param {PointerEvent} ev */
+	pointermove(ev) {
 		if (!this.movingPathPoint) return;
 
-		const posOld = this.pos;
+		const posOld = this.posView;
 		if (!posOld) return;
-		this.pos = new DOMPoint(ev.x, ev.y);
-		const clientDx = this.pos.x - posOld.x;
-		const clientDy = this.pos.y - posOld.y;
-		const scale = matrixScale(this.svg.getScreenCTM()) * matrixScale(getTransform(this.view));
-		const d = new DOMPoint(clientDx / scale, clientDy / scale);
+		this.posView = ev.posView;
+		const d = new DOMPoint(this.posView.x - posOld.x, this.posView.y - posOld.y);
 
-		if (this.movingPathPoint) {
-			/** @type {SVGGElement} */
-			const span = this.movingPathPoint.parentElement.parentElement;
-			const spanTransform = getTransform(span);
-			d.x /= matrixScale(spanTransform);
-			d.y /= matrixScale(spanTransform);
-			const point = new DOMPoint(
-				this.movingPathPoint.cx.baseVal.value + d.x,
-				this.movingPathPoint.cy.baseVal.value + d.y,
-			);
-			// move circle
-			this.movingPathPoint.cx.baseVal.value = point.x;
-			this.movingPathPoint.cy.baseVal.value = point.y;
-			const cmdI = +this.movingPathPoint.getAttribute('data-command');
-			const pointI = +this.movingPathPoint.getAttribute('data-point');
-			// move path
-			this.commands[cmdI].coords[pointI] = point.x;
-			this.commands[cmdI].coords[pointI + 1] = point.y;
-			this.path.setAttribute('d', fmtCommands(this.commands));
-			this.path.nextElementSibling.setAttribute('textLength', this.path.getTotalLength());
+		const point = new DOMPoint(
+			this.movingPathPoint.cx.baseVal.value + d.x,
+			this.movingPathPoint.cy.baseVal.value + d.y,
+		);
+		// move circle
+		this.movingPathPoint.setAttribute('cx', point.x);
+		this.movingPathPoint.setAttribute('cy', point.y);
+		const cmdI = +this.movingPathPoint.getAttribute('data-command');
+		const pointI = +this.movingPathPoint.getAttribute('data-point');
+		// move path
+		this.commands[cmdI].coords[pointI] = point.matrixTransform(getTransform(this.span).inverse());
+		this.path.setAttribute('d', fmtCommands(this.commands));
+		this.path.nextElementSibling.setAttribute('textLength', this.path.getTotalLength());
 
-			this.updateSelectGroup();
+		this.updateSelectGroup();
 
-			return true;
-		}
+		return true;
 	}
 
 	pointerup() {
-		const selections = this.view.getElementsByClassName('selected');
-		if (selections.length == 1) {
-			this.showPoints(selections[0]);
-			this.updateSelectGroup();
-		}
-		this.pos = undefined;
+		this.posView = undefined;
 		const res = this.movingPathPoint != undefined;
 		this.movingPathPoint = undefined;
 		return res;
-	}
-
-	/**
-	 * @param {SVGGElement} span
-	 */
-	showPoints(span) {
-		if (span.contains(this.pathPoints) && this.pathPoints.children.length > 0) return;
-		this.selectNone();
-		span.append(this.pathPoints);
-		/** @type {SVGPathElement} */
-		this.path = span.firstElementChild;
-		this.commands = parseCommands(this.path.getAttribute('d'));
-		for (let i = 0; i < this.commands.length; i++) {
-			const cmd = this.commands[i];
-			for (let j = 0; j < cmd.coords.length; j += 2) {
-				const circle = document.createElementNS(xmlns, 'circle');
-				circle.cx.baseVal.value = cmd.coords[j * 2];
-				circle.cy.baseVal.value = cmd.coords[j * 2 + 1];
-				circle.setAttribute('data-command', i.toString());
-				circle.setAttribute('data-point', (j * 2).toString());
-				this.pathPoints.append(circle);
-			}
-		}
 	}
 
 	selectNone() {

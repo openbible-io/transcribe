@@ -9,8 +9,6 @@ export class Select {
 		this.svg = svg;
 		/** @type {SVGGElement} */
 		this.view = svg.getElementById('view');
-		/** @type {SVGGElement} */
-		this.ui = svg.getElementById('ui');
 		/** @type {SVGPathElement} */
 		this.selectDrag = svg.getElementById('selectDrag');
 		/** @type {SVGPathElement} */
@@ -21,7 +19,10 @@ export class Select {
 		this.selectGroupBot = svg.getElementById('selectGroupBot');
 
 		this.path = new Path(svg, this.updateSelectGroup.bind(this));
-		this.transform = new Transform(svg, this.updateSelectGroup.bind(this));
+		this.transform = new Transform(svg, () => {
+			this.path.updatePoints();
+			this.updateSelectGroup();
+		});
 
 		this.selections = this.view.getElementsByClassName('selected');
 	}
@@ -34,7 +35,6 @@ export class Select {
 		this.pos = new DOMPoint(ev.x, ev.y);
 		/** @type {DOMPoint} */
 		this.posView = ev.posView;
-		if (this.path.pointerdown(ev, tool)) return;
 
 		if (tool != 'select' && tool != 'text') return;
 		/** @type {SVGElement} */
@@ -49,7 +49,10 @@ export class Select {
 				this.updateSelectGroup();
 			}
 			if (this.transform.pointerdown(ev, tool)) return;
+			if (this.path.pointerdown(ev, tool)) return;
 			return true;
+		} else if (this.path.pointerdown(ev, tool)) {
+			return;
 		} else if (!ev.shiftKey) {
 			this.selectNone();
 		}
@@ -119,17 +122,15 @@ export class Select {
 
 	/**
 	 * Resize selection group box.
-	 * Start path editing if there is only one selection.
+	 * Update path points.
+	 *
 	 * @param {boolean} startEdit
-	 * @returns {boolean} if there is only a single selection
 	 */
 	updateSelectGroup() {
 		if (this.selections.length != 1) this.path.selectNone();
 		const min = new DOMPoint(Infinity, Infinity);
 		const max = new DOMPoint(-Infinity, -Infinity);
 		this.selectGroup.setAttribute('d', '');
-		this.selectGroupTop.setAttribute('d', '');
-		this.selectGroupBot.setAttribute('d', '');
 		for (let i = 0; i < this.selections.length; i++) {
 			/** @type {SVGRect} */
 			const rect = this.selections[i].getBBox();
@@ -146,19 +147,30 @@ export class Select {
 			const width = max.x - min.x;
 			const height = max.y - min.y;
 			this.selectGroup.setAttribute('d', `M${min.x},${min.y} h${width} v${height} h${-width}Z`);
-			const controlWidth = 16;
-			const controlX = (width - controlWidth) / 2;
-			this.selectGroupTop.setAttribute('d', `M${min.x + controlX},${min.y - controlWidth / 2} h${controlWidth} v${controlWidth} h${-controlWidth}Z`);
-			this.selectGroupBot.setAttribute('d', `M${min.x + controlX},${max.y - controlWidth / 2} h${controlWidth} v${controlWidth} h${-controlWidth}Z`);
+			const controlX = min.x + width / 2;
+			this.selectGroupTop.setAttribute('x', controlX);
+			this.selectGroupTop.setAttribute('y', min.y);
+			this.selectGroupBot.setAttribute('x', controlX);
+			this.selectGroupBot.setAttribute('y', max.y);
+			this.selectGroupTop.removeAttribute('display');
+			this.selectGroupBot.removeAttribute('display');
 		}
 	}
 
 	selectNone() {
 		while (this.selections.length) this.selections[0].classList.remove('selected');
 		this.selectGroup.setAttribute('d', '');
-		this.selectGroupTop.setAttribute('d', '');
-		this.selectGroupBot.setAttribute('d', '');
+		this.selectGroupTop.setAttribute('display', 'none');
+		this.selectGroupBot.setAttribute('display', 'none');
 		this.selectGroup.setAttribute('transform', new DOMMatrix().toString());
 		this.path.selectNone();
+	}
+
+	/** @param {KeyboardEvent} ev */
+	keydownDoc(ev) {
+		if ((ev.key == 'Backspace' || ev.key == 'Delete') && this.selections.length) {
+			while (this.selections.length) this.selections[0].remove('selected');
+			this.selectNone();
+		}
 	}
 }

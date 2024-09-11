@@ -4,60 +4,14 @@
 		<meta charset="utf-8" />
 		<meta http-equiv="X-UA-Compatible" content="IE=edge">
 		<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=0" />
-		<meta name="theme-color" content="#000000" />
-		<link rel="shortcut icon" type="image/ico" href="src/icons/favicon.svg" />
-		<link rel="stylesheet" href="src/main.css" />
 		<title>Transcribe</title>
+		<style>
+		</style>
+		<link rel="shortcut icon" type="image/ico" href="./src/icons/favicon.svg" />
+		<link rel="stylesheet" href="./src/main.css" />
+		<script type="module" src="./src/transcribe.js"></script>
 	</head>
 	<body>
-		<div class="toolbar">
-			<div>
-				<label>
-					<input type="radio" name="tool" id="select">
-<svg viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
-	<path d="m2.02 2.16a0.5 0.5 0 0 0-0.103 0.557l5.66 12.7a0.5 0.5 0 0 0 0.917-7e-3l2.04-4.77 4.77-2.04a0.5 0.5 0 0 0 6e-3 -0.916l-12.7-5.66a0.5 0.5 0 0 0-0.556 0.103zm11.8 6-3.9 1.67a0.5 0.5 0 0 0-0.262 0.263l-1.67 3.9-4.66-10.5z"/>
-</svg>
-				</label>
-				<label>
-					<input type="radio" name="tool" id="pan">
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path d="M256 0c-25.3 0-47.2 14.7-57.6 36-7-2.6-14.5-4-22.4-4-35.3 0-64 28.7-64 64v165.5l-2.7-2.7c-25-25-65.5-25-90.5 0s-25 65.5 0 90.5l87.7 87.7c48 48 113.1 75 181 75H304c1.5 0 3-.1 4.5-.4 91.7-6.2 165-79.4 171.1-171.1.3-1.5.4-3 .4-4.5V160c0-35.3-28.7-64-64-64-5.5 0-10.9.7-16 2v-2c0-35.3-28.7-64-64-64-7.9 0-15.4 1.4-22.4 4C303.2 14.7 281.3 0 256 0zm-16 96.1V64c0-8.8 7.2-16 16-16s16 7.2 16 16v168c0 13.3 10.7 24 24 24s24-10.7 24-24V95.9c0-8.8 7.2-16 16-16s16 7.2 16 16v136c0 13.3 10.7 24 24 24s24-10.7 24-24V160c0-8.8 7.2-16 16-16s16 7.2 16 16v172.9c-.1.6-.1 1.3-.2 1.9-3.4 69.7-59.3 125.6-129 129-.6 0-1.3.1-1.9.2h-13.4c-55.2 0-108.1-21.9-147.1-60.9l-87.7-87.8c-6.2-6.2-6.2-16.4 0-22.6s16.4-6.2 22.6 0l43.7 43.7c6.9 6.9 17.2 8.9 26.2 5.2s14.8-12.5 14.8-22.2V96c0-8.8 7.2-16 16-16s16 7.1 16 15.9V232c0 13.3 10.7 24 24 24s24-10.7 24-24V96.1z"></path></svg>
-				</label>
-				<label>
-					<input type="radio" name="tool" id="text">
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="2 2 20 20"><path fill="currentColor" d="M6.5 3H3v3.5h1V4h2.5V3ZM8.5 4V3H11v1H8.5ZM13 4h2.5V3H13v1ZM17.5 3v1H20v2.5h1V3h-3.5ZM21 8.5h-1V11h1V8.5ZM21 13h-1v2.5h1V13ZM21 17.5h-1V20h-2.5v1H21v-3.5ZM15.5 21v-1H13v1h2.5ZM11 21v-1H8.5v1H11ZM6.5 21v-1H4v-2.5H3V21h3.5ZM3 15.5h1V13H3v2.5ZM3 11h1V8.5H3V11ZM11 9.5H7v-2h10v2h-4v7h-2v-7Z"></path></svg>
-				</label>
-			</div>
-		</div>
-		<svg xmlns="http://www.w3.org/2000/svg" class="editor" lang="en">
-			<g id="view">
-				<image opacity="0.5" href="./data/eurotext.png" />
-<g id="transcription">
-				<g class="span" transform="matrix(1.8657071590423584, 0, 0, 1.8657071590423584, -52.808135986328125, -32.031166076660156)">
-	<path id="span0" d="M61,51 L312,51"></path>
-	<text lengthAdjust="spacingAndGlyphs" lang="en" textLength="251">
-		<textPath href="#span0">The (quick) [brown] {fox} jumps!</textPath>
-	</text>
-</g><g class="span" transform="matrix(1.8775588274002075, 0, 0, 1.8775588274002075, -49.14329528808594, -334.34991455078125)">
-	<path id="span1" d="M56,395 L265,395"></path>
-	<text lengthAdjust="spacingAndGlyphs" lang="en" textLength="209">
-		<textPath href="#span1">salta sobre o cao preguicoso.</textPath>
-	</text>
-</g></g>
-				<!-- UI is in view so transforms do not have to be applied twice -->
-				<g id="ui">
-					<path id="selectDrag" />
-					<path id="selectGroup" />
-					<path id="selectGroupTop" />
-					<path id="selectGroupBot" />
-					<foreignObject>
-						<form>
-							<input id="textInput" enterkeyhint="done">
-						</form>
-					</foreignObject>
-					<g id="pathPoints" />
-				</g>
-			</g>
-		</svg>
-		<script type="module" src="src/transcribe.js"></script>
+		<ob-transcribe href="/B-472637.webp" lang="he"></ob-transcribe>
 	</body>
 </html>

@@ -65,7 +65,7 @@ export class Touch {
 				.matrixTransform(this.svg.getScreenCTM().inverse())
 				.matrixTransform(transform.inverse());
 
-			const touchTransform = this.svg.createSVGMatrix()
+			const touchTransform = new DOMMatrix()
 				.translate(origin.x, origin.y)
 				.translate(translationX, translationY)
 				.rotate(rotation)

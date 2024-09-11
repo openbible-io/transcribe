@@ -25,11 +25,8 @@ export class Transform {
 		this.selectGroupBot.addEventListener('pointerdown', this.pointerdownControl.bind(this));
 	}
 
-	/**
-	 * @param {PointerEvent} ev
-	 * @param {string} tool
-	 */
-	pointerdown(ev, tool) {
+	/** @param {PointerEvent} ev */
+	pointerdown(ev) {
 		this.pos = new DOMPoint(ev.x, ev.y);
 		const selectable = ev.target.closest(selectableSelector);
 		if (selectable && selectable.classList.contains('selected')) {
@@ -49,13 +46,10 @@ export class Transform {
 		ev.stopPropagation();
 	}
 
-	/**
-	 * @param {PointerEvent} ev
-	 * @param {string} tool
-	 */
-	pointermove(ev, tool) {
+	/** @param {PointerEvent} ev */
+	pointermove(ev) {
 		if (this.translating || this.scaleOrigin) {
-			let transform = this.svg.createSVGMatrix();
+			let transform = new DOMMatrix();
 			if (this.translating) {
 				const posOld = this.pos;
 				this.pos = new DOMPoint(ev.x, ev.y);

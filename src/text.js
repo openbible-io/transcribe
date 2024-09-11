@@ -1,4 +1,5 @@
-import { fmtPoint, selectableSelector } from './helpers.js';
+import { fmtPoint, getTransform, setTransform, selectableSelector } from './helpers.js';
+import { Select } from './select.js'; // Just for type...
 
 const spanTemplate = document.createElement('template');
 spanTemplate.innerHTML = `
@@ -27,32 +28,37 @@ const dblClickMs = 500;
 const dblClickRadius = 8;
 
 export class Text {
-	/** @param {SVGGSVGElement} svg */
-	constructor(svg) {
-		this.svg = svg;
+	/**
+	 * @param {SVGGSVGElement} editor
+	 * @param {Select} select
+	 * @param {HTMLSelectElement} lang
+	 */
+	constructor(editor, select) {
+		this.editor = editor;
 		/** @type {SVGGElement} */
-		this.transcription = svg.getElementById('transcription');
-		this.uidCount = this.transcription.children.length;
+		this.doc = editor.querySelector('svg');
+		this.uid = this.doc.children.length;
 		/** @type {SVGForeignObjectElement} */
-		this.fo = svg.querySelector('foreignObject');
+		this.fo = editor.querySelector('foreignObject');
 		/** @type {HTMLInputElement} */
-		this.textInput = svg.getElementById('textInput');
+		this.textInput = editor.getElementById('textInput');
 		/** @type {SVGPathElement} */
-		this.selectDrag = svg.getElementById('selectDrag');
-
-		/** @type {SVGPathElement} */
-		this.selectDrag = svg.getElementById('selectDrag');
+		this.selectDrag = editor.getElementById('selectDrag');
+		/** @type {SVGGElement} */
+		this.ui = editor.getElementById('ui');
 
 		this.textInput.parentElement.addEventListener('submit', ev => {
 			ev.preventDefault()
 			this.end();
 		});
 		this.textInput.addEventListener('blur', ev => ev.relatedTarget && this.end());
+		this.select = select;
+		this.lang = lang;
 	}
 
 	/**
 	 * @param {DOMRect} bbox
-	 * @param {string} lang
+	 * @param {string | undefined} lang
 	 */
 	start(bbox, lang) {
 		this.fo.style.display = 'block';
@@ -71,15 +77,21 @@ export class Text {
 		this.fo.setAttribute('height', bbox.height / scale);
 		this.fo.setAttribute('transform', transform.toString());
 
+		if (!lang) lang = this.lang.value;
 		this.textInput.setAttribute('lang', lang);
-		if (lang == 'he') this.textInput.setAttribute('dir', 'rtl');
+		this.textInput.setAttribute('dir', lang == 'he' ? 'rtl' : 'ltr');
 		this.textInput.focus();
 	}
 
 	end() {
 		if (this.editing) {
 			this.editing.removeAttribute('style');
-		} else if (this.textInput.value) {
+			if (this.textInput.value == '') {
+				this.editing.remove();
+				this.select.selectNone();
+			}
+		}
+		if (this.textInput.value) {
 			/** @type {SVGGElement} */
 			const span = this.editing ?? spanTemplate.content.cloneNode(true).querySelector('g');
 			/** @type {SVGPathElement} */
@@ -91,10 +103,10 @@ export class Text {
 			const textPath = span.querySelector('textPath');
 			textPath.textContent = this.textInput.value;
 
-			span.setAttribute('transform', this.fo.getAttribute('transform'));
-			path.id = this.uid('span');
+			setTransform(span, getTransform(this.ui).multiply(getTransform(this.fo)));
+			path.id = this.getUid('span');
 			textPath.setAttribute('href', `#${path.id}`);
-			this.transcription.appendChild(span);
+			this.doc.appendChild(span);
 			const metrics = fontMetrics(this.textInput);
 			const p1 = new DOMPoint(
 				this.fo.x.baseVal.value,
@@ -125,15 +137,16 @@ export class Text {
 			/** @type {SVGGElement | undefined} */
 			this.editing = ev.target.closest(selectableSelector);
 			if (this.editing) {
+				this.select.selectNone();
 				const text = this.editing.querySelector('text');
-				const transform = this.editing.transform.baseVal[0]?.matrix ?? this.editing.ownerSVGElement.createSVGMatrix();
+				const transform = getTransform(this.editing);
 				const bbox = text.getBBox();
 				const actual = new DOMPoint(bbox.x, bbox.y).matrixTransform(transform);
 				bbox.x = actual.x;
 				bbox.y = actual.y + 1;
 				bbox.width *= transform.a;
 				bbox.height *= transform.d;
-				this.start(bbox, text.getAttribute('lang') || this.svg.getAttribute('lang'));
+				this.start(bbox, text.getAttribute('lang'));
 				this.textInput.value = this.editing.querySelector('textPath').textContent;
 				this.editing.style.display = 'none';
 
@@ -148,7 +161,7 @@ export class Text {
 	pointerup(_, tool) {
 		if (tool != 'text') return;
 		const bbox = this.selectDrag.getBBox();
-		if (bbox.width > 1 && bbox.height > 1) this.start(bbox, this.svg.getAttribute('lang'));
+		if (bbox.width > 1 && bbox.height > 1) this.start(bbox);
 	}
 
 	pointerdownDoc() {
@@ -164,13 +177,19 @@ export class Text {
 			}
 			this.fo.style.display = 'none';
 		}
+		if ((ev.key == 'Backspace' || ev.key == 'Delete') && this.editing) {
+			this.editing.remove();
+			this.editing = undefined;
+			this.fo.style.display = 'none';
+		}
+		if (document.activeElement == this.textInput) return true;
 	}
 
 	/** @param {string} prefix */
-	uid(prefix) {
+	getUid(prefix) {
 		let uid;
 		do {
-			uid = `${prefix}${this.uidCount++}`;
+			uid = `${prefix}${this.uid++}`;
 		} while (document.getElementById(uid));
 
 		return uid;

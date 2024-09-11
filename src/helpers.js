@@ -19,15 +19,11 @@ class Color {
 	}
 }
 
-/**
- * @param {DOMMatrix} m
- */
+/** @param {DOMMatrix} m */
 export function matrixScale(m) {
-	return Math.sqrt(m.a ** 2 + m.b ** 2);
+	return Math.sqrt(m.a ** 2 + m.c ** 2);
 }
-/**
- * @param {DOMPoint} p
- */
+/** @param {DOMPoint} p */
 export function fmtPoint(p) {
 	return `${p.x.toFixed(0)},${p.y.toFixed(0)}`;
 }
@@ -39,40 +35,40 @@ export function rectsOverlap(a, b) {
 	return !(a.top > b.bottom || a.right < b.left || a.bottom < b.top || a.left > b.right);
 }
 /**
+ * Parses commands in `Ax,y Bx,y` format.
+ * Yes, there are libraries to properly do this if we need
+ * to support more path commands and formats.
+ *
  * @param {string} path
  */
 export function parseCommands(path) {
 	return path
 		.split(' ')
-		.map(str => ({
-			command: str[0],
-			coords: str.substring(1).split(',').map(n => Number.parseFloat(n)),
-		}));
+		.map(str => {
+			const pts = str.substring(1).split(',').map(n => Number.parseFloat(n));
+			const coords = [];
+			for (let i = 0; i < pts.length; i += 2) {
+				coords.push(new DOMPoint(pts[i * 2], pts[i * 2 + 1]));
+			}
+			return { command: str[0], coords };
+		});
 }
-/**
- * @param {ReturnType<parseCommands>} cmds
- */
+/** @param {ReturnType<parseCommands>} cmds */
 export function fmtCommands(cmds) {
 	return cmds
-		.map(cmd => `${cmd.command}${cmd.coords.join(',')}`)
+		.map(cmd => `${cmd.command}${cmd.coords.map(c => `${c.x},${c.y}`).join(',')}`)
 		.join(' ');
 }
-
-/**
- * @param {SVGElement} g
- * @returns {SVGMatrix}
- */
+/** @param {SVGElement} g */
 export function getTransform(g) {
-	return g?.transform?.baseVal[0]?.matrix ?? g.ownerSVGElement.createSVGMatrix();
+	return new DOMMatrix(g.getAttribute('transform') ?? '');
 }
 /**
- * @param {SVGElement} svg
+ * @param {SVGElement} g
  * @param {DOMMatrix} newValue
  */
 export function setTransform(g, newValue) {
-	// While more efficient, this doesn't reflect back to DOM and so is undesirable.
-	// g.transform.baseVal[0].setMatrix(newValue);
-	g.setAttribute('transform', `matrix(${newValue.a}, ${newValue.b}, ${newValue.c}, ${newValue.d}, ${newValue.e}, ${newValue.f})`);
+	g.setAttribute('transform', newValue.toString());
 }
 
 export const xmlns = 'http://www.w3.org/2000/svg';
@@ -86,5 +82,5 @@ export const selectableSelector = 'g.span';
 export function toViewport(svg, clientX, clientY) {
 	const view = svg.getElementById('view');
 	return new DOMPoint(clientX, clientY)
-		.matrixTransform(svg.getScreenCTM().multiply(getTransform(view)).inverse())
+		.matrixTransform(svg.getScreenCTM().multiply(view.transform.baseVal[0].matrix).inverse())
 }

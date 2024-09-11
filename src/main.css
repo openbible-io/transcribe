@@ -1,162 +1,38 @@
-html {
-	--primary-text-color: #3b4351;
-	--primary-theme-color: #0b8dc4;
-	--overlay-background: rgba(25, 25, 25, 0.8);
+/** SPA */
+:root {
+	--primary-font-color: #3b4351;
 	--primary-font-family: sans-serif;
 	--primary-font-size: 20px;
+	--overlay-background: rgba(25, 25, 25, 0.8);
 }
-/*! minireset.css v0.0.6 | MIT License | github.com/jgthms/minireset.css */
-html,
-body,
-p,
-ol,
-ul,
-li,
-dl,
-dt,
-dd,
-blockquote,
-figure,
-fieldset,
-legend,
-textarea,
-pre,
-hr,
-h1,
-h2,
-h3,
-h4,
-h5,
-h6 {
-  margin: 0;
-  padding: 0;
-}
-
-h1,
-h2,
-h3,
-h4,
-h5,
-h6 {
-  font-weight: normal;
-}
-
-ul {
-  list-style: none;
-}
-
-html {
-  box-sizing: border-box;
-}
-
-*, *::before, *::after {
-  box-sizing: inherit;
-}
-
-img,
-video {
-  height: auto;
-  max-width: 100%;
-}
-
-table {
-  border-collapse: collapse;
-  border-spacing: 0;
-}
-
-td,
-th {
-  padding: 0;
-}
-/* end minireset */
-html,
-body {
-	color: var(--primary-text-color);
+html, body {
+	margin: 0;
+	padding: 0;
+	color: var(--primary-font-color);
 	font-family: var(--primary-font-stack);
 	font-size: var(--primary-font-size);
-	width: 100%;
-	height: 100%;
-	display: flex;
-	flex-direction: column;
-}
-input, select, button {
-	font-size: calc(var(--global-font-size) * 0.83333);
-	margin: 0;
-	/*a11y*/
-	min-width: 32px;
-	min-height: 32px;
-}
-input[type="checkbox"] {
-	width: calc(var(--global-font-size) * 0.83333);
-	height: calc(var(--global-font-size) * 0.83333);
-}
-main {
-	display: flex;
-	flex-direction: column;
-	min-height: 0;
-	flex-grow: 1;
-}
-h1 {
-	font-size: 1.6em;
-}
-h2 {
-	font-size: 1.5em;
-}
-h3 {
-	font-size: 1.4em;
-}
-h4 {
-	font-size: 1.3em;
-}
-h5 {
-	font-size: 1.2em;
-}
-h6 {
-	font-size: 1.1em;
+	overflow: hidden;
 }
 
+/** editor */
 .editor {
 	--font: 16px Arial;
 	--select-stroke: blue;
-	--view-scale: 1;
-	touch-action: none;
 	flex: 1;
-	fill: black;
-	stroke: var(--select-stroke);
-	stroke-width: 1;
+	touch-action: none;
 	user-select: none;
+	height: 100vh;
 }
+#view { --view-scale: 1; }
 .editor.pan { cursor: grab; }
 .editor.text { cursor: crosshair; }
-.span {
-	stroke: none;
-}
-.editor .span:not(.selected):hover > path {
-	stroke-dasharray: 4;
-	stroke: var(--select-stroke);
-}
-.editor.select .span.selected:hover {
-	cursor: move;
-}
-.editor .span.selected:hover > path {
-	stroke-width: calc(2 / var(--view-scale));
-}
-.span.selected > path {
+#ui {
+	fill: black;
 	stroke: var(--select-stroke);
 	stroke-width: calc(1 / var(--view-scale));
+	--control-width: 16px;
 }
-#textInput {
-	outline: none;
-	border: none;
-	background: transparent;
-	padding: 0;
-	font: var(--font);
-	width: 100%;
-	min-height: 0;
-}
-foreignObject {
-	outline: calc(1px / var(--view-scale)) solid blue;
-}
+/** toolbar */
 .toolbar {
 	position: fixed;
 	display: flex;
@@ -192,35 +68,57 @@ foreignObject {
 .toolbar input:checked ~ svg {
 	background: blue;
 }
+/** left panel */
 .panelLeft {
 	position: absolute;
 	top: 0;
 	left: 0;
+	display: flex;
+	flex-direction: column;
+	background: var(--overlay-background);
 }
-#pathPoints > circle {
-	r: 4px;
-	cursor: move;
-}
-#selectDrag {
-	fill: none;
-}
-.editor.select #selectDrag {
-	fill: rgba(0, 0, 255, 0.2);
-}
-#selectGroup {
-	fill: none;
-}
-textPath {
-	font: var(--font);
-}
-text[lang=he],
-#textInput[lang=he] {
-	dominant-baseline: hanging;
-}
-#ui {
+
+/** select */
+.span.selected:hover { cursor: move; }
+.span.selected > path {
+	stroke: var(--select-stroke);
 	stroke-width: calc(1 / var(--view-scale));
 }
+.editor .span:not(.selected):hover > path {
+	stroke-dasharray: 4;
+	stroke: var(--select-stroke);
+}
+.span.selected:hover { cursor: move; }
+.span.selected:hover > path { stroke-width: calc(2 / var(--view-scale)); }
+#selectDrag, #selectGroup { fill: none; }
+.editor.select #selectDrag { fill: rgba(0, 0, 255, 0.2); }
 #selectGroupTop, #selectGroupBot {
 	cursor: ns-resize;
-	fill: transparent;
+	fill: white;
+	--size: calc(var(--control-width) / var(--view-scale));
+	--offset: calc(var(--size) / -2);
+	width: var(--size);
+	height: var(--size);
+	transform: translate(var(--offset), var(--offset));
 }
+/** text */
+#textInput {
+	outline: none;
+	border: none;
+	background: transparent;
+	padding: 0;
+	font: var(--font);
+	width: 100%;
+	min-height: 0;
+}
+foreignObject {
+	outline: 1px solid blue;
+}
+#textInput[lang=he] { dominant-baseline: hanging; }
+/** path */
+#pathPoints > circle {
+	--span-scale: 1;
+	r: calc(var(--control-width) / 2 / var(--view-scale));
+	cursor: move;
+}
+textPath { font: var(--font); }
