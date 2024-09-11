@@ -16,11 +16,16 @@ const tools = {
 
 const template = document.createElement('template');
 template.innerHTML = `
-<div class="panelLeft">
+<div class="leftPanel">
 	<select id="lang">
 		<option value="he">Hebrew</option>
 		<option value="grc">Ancient Greek</option>
 		<option value="en">English</option>
+	</select>
+	<input id="fontSize" type="number" value="16" step="1" min="1">
+	<select id="fontFamily">
+		<option>Arial</option>
+		<option>Fredoka</option>
 	</select>
 	<a id="save" href="data:image/svg+xml">Save</a>
 </div>
@@ -39,6 +44,10 @@ template.innerHTML = `
 		<svg xmlns="http://www.w3.org/2000/svg">
 			<style>
 				text[lang=he] { dominant-baseline: hanging; }
+				@font-face {
+					font-family: "KoineGreek";
+					src: url('/fonts/KoineGreek.ttf') format('truetype');
+				}
 			</style>
 			<image />
 		</svg>
@@ -81,7 +90,7 @@ class Transcribe extends HTMLElement {
 		this.panZoomRot = new PanZoomRotate(this.editor);
 		this.touch = new Touch(this.editor);
 		this.select = new Select(this.editor);
-		this.text = new Text(this.editor, this.select, this.langSelect);
+		this.text = new Text(this.editor, this.select, this.querySelector('.leftPanel'));
 		this.tool = 'text'; // custom setter pushes state to DOM
 
 		this.querySelectorAll('[name="tool"]')

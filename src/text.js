@@ -31,9 +31,9 @@ export class Text {
 	/**
 	 * @param {SVGGSVGElement} editor
 	 * @param {Select} select
-	 * @param {HTMLSelectElement} lang
+	 * @param {HTMLDivElement} leftPanel
 	 */
-	constructor(editor, select) {
+	constructor(editor, select, leftPanel) {
 		this.editor = editor;
 		/** @type {SVGGElement} */
 		this.doc = editor.querySelector('svg');
@@ -46,14 +46,19 @@ export class Text {
 		this.selectDrag = editor.getElementById('selectDrag');
 		/** @type {SVGGElement} */
 		this.ui = editor.getElementById('ui');
+		this.select = select;
+		/** @type {HTMLSelectElement} */
+		this.lang = leftPanel.querySelector('#lang');
+		/** @type {HTMLInputElement} */
+		this.fontSize = leftPanel.querySelector('#fontSize');
+		/** @type {HTMLSelectElement} */
+		this.fontFamily = leftPanel.querySelector('#fontFamily');
 
 		this.textInput.parentElement.addEventListener('submit', ev => {
 			ev.preventDefault()
 			this.end();
 		});
 		this.textInput.addEventListener('blur', ev => ev.relatedTarget && this.end());
-		this.select = select;
-		this.lang = lang;
 	}
 
 	/**
@@ -67,6 +72,8 @@ export class Text {
 		this.fo.setAttribute('width', bbox.width);
 		this.fo.setAttribute('height', bbox.height);
 		this.fo.removeAttribute('transform');
+		this.textInput.style.fontFamily = this.fontFamily.value;
+		this.textInput.style.fontSize = this.fontSize.value + 'px';
 
 		// scale input to selection
 		const foreignHeight = this.fo.getBoundingClientRect().height;
@@ -115,6 +122,7 @@ export class Text {
 			const p2 = new DOMPoint(p1.x + this.fo.width.baseVal.value, p1.y);
 			path.setAttribute('d', `M${fmtPoint(p1)} L${fmtPoint(p2)}`);
 			text.setAttribute('textLength', path.getTotalLength());
+			text.setAttribute('style', this.textInput.getAttribute('style'));
 		}
 		this.editing = undefined;
 		this.textInput.value = '';

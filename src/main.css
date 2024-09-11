@@ -16,7 +16,6 @@ html, body {
 
 /** editor */
 .editor {
-	--font: 16px Arial;
 	--select-stroke: blue;
 	flex: 1;
 	touch-action: none;
@@ -30,7 +29,7 @@ html, body {
 	fill: black;
 	stroke: var(--select-stroke);
 	stroke-width: calc(1 / var(--view-scale));
-	--control-width: 16px;
+	--control-width: 2%;
 }
 /** toolbar */
 .toolbar {
@@ -69,13 +68,16 @@ html, body {
 	background: blue;
 }
 /** left panel */
-.panelLeft {
+.leftPanel {
 	position: absolute;
 	top: 0;
 	left: 0;
 	display: flex;
 	flex-direction: column;
 	background: var(--overlay-background);
+}
+.leftPanel a {
+	color: white;
 }
 
 /** select */
@@ -107,7 +109,6 @@ html, body {
 	border: none;
 	background: transparent;
 	padding: 0;
-	font: var(--font);
 	width: 100%;
 	min-height: 0;
 }
@@ -121,4 +122,3 @@ foreignObject {
 	r: calc(var(--control-width) / 2 / var(--view-scale));
 	cursor: move;
 }
-textPath { font: var(--font); }

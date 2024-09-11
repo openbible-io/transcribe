@@ -23,7 +23,7 @@ export class PanZoomRotate {
 	pointerdown(ev, tool) {
 		this.pos = new DOMPoint(ev.x, ev.y);
 		if (this.isPanning(ev, tool)) {
-			this.pushCursor('grabbing');
+			this.svg.style.cursor = 'grabbing';
 			return true;
 		}
 	}
@@ -46,7 +46,7 @@ export class PanZoomRotate {
 	}
 
 	pointerup() {
-		this.popCursor();
+		this.svg.style.cursor = '';
 	}
 
 	/**
@@ -87,17 +87,6 @@ export class PanZoomRotate {
 			setTransform(this.ui, transform.inverse().multiply(getTransform(this.ui)));
 		}
 		this.setTransform(transform.multiply(getTransform(this.view)));
-	}
-
-	/** @param {string} c */
-	pushCursor(c) {
-		this.tmpCursor = this.svg.style.cursor ?? '';
-		this.svg.style.cursor = c;
-	}
-
-	popCursor() {
-		this.svg.style.cursor = this.tmpCursor ?? '';
-		this.tmpCursor = '';
 	}
 
 	/** @param {DOMMatrix} transform */
