@@ -13,9 +13,7 @@ spanTemplate.innerHTML = `
 </svg>
 `;
 
-/**
- * @param {HTMLElement | SVGElement} ele
- */
+/** @param {HTMLElement | SVGElement} ele */
 function fontMetrics(ele) {
 	const canvas = new OffscreenCanvas(10, 10);
 	const ctx = canvas.getContext('2d');
@@ -26,6 +24,17 @@ function fontMetrics(ele) {
 
 const dblClickMs = 500;
 const dblClickRadius = 8;
+export const fonts = {
+	KoineGreek: {},
+	Ezra: {},
+	EzraSr: {},
+	Habbakuk: {},
+	KoineGreek: {},
+	NotoRashiHebrew: {},
+	OpenSans: {},
+	OpenSansIt: {},
+	PaddisHandwritten: {},
+};
 
 export class Text {
 	/**
@@ -49,8 +58,6 @@ export class Text {
 		this.select = select;
 		/** @type {HTMLSelectElement} */
 		this.lang = leftPanel.querySelector('#lang');
-		/** @type {HTMLInputElement} */
-		this.fontSize = leftPanel.querySelector('#fontSize');
 		/** @type {HTMLSelectElement} */
 		this.fontFamily = leftPanel.querySelector('#fontFamily');
 
@@ -73,7 +80,6 @@ export class Text {
 		this.fo.setAttribute('height', bbox.height);
 		this.fo.removeAttribute('transform');
 		this.textInput.style.fontFamily = this.fontFamily.value;
-		this.textInput.style.fontSize = this.fontSize.value + 'px';
 
 		// scale input to selection
 		const foreignHeight = this.fo.getBoundingClientRect().height;

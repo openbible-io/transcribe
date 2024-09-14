@@ -1,7 +1,7 @@
 import { toViewport } from './helpers.js';
 import { PanZoomRotate } from './pan.js';
 import { Touch } from './touch.js';
-import { Text } from './text.js';
+import { Text, fonts } from './text.js';
 import { Select } from './select.js';
 
 import SelectIcon from './icons/select.svg?raw';
@@ -22,11 +22,14 @@ template.innerHTML = `
 		<option value="grc">Ancient Greek</option>
 		<option value="en">English</option>
 	</select>
-	<input id="fontSize" type="number" value="16" step="1" min="1">
 	<select id="fontFamily">
-		<option>Arial</option>
-		<option>Fredoka</option>
+		${Object.keys(fonts).map(k => `
+			<option>${k}</option>
+		`)}
 	</select>
+	<button id="diacritic">
+		Remove diacritical marks
+	</button>
 	<a id="save" href="data:image/svg+xml">Save</a>
 </div>
 <div class="toolbar">
@@ -43,11 +46,14 @@ template.innerHTML = `
 	<g id="view" transform="matrix(1,0,0,1,0,0)">
 		<svg xmlns="http://www.w3.org/2000/svg">
 			<style>
+				text { font-size: 32px; }
 				text[lang=he] { dominant-baseline: hanging; }
-				@font-face {
-					font-family: "KoineGreek";
-					src: url('/fonts/KoineGreek.ttf') format('truetype');
-				}
+				${Object.entries(fonts).map(([k, v]) => `
+					@font-face {
+						font-family: "${k}";
+						src: url('/fonts/${k}.ttf') format('truetype');
+					}
+				`).join('')}
 			</style>
 			<image />
 		</svg>
@@ -86,6 +92,10 @@ class Transcribe extends HTMLElement {
 		this.save = this.querySelector('#save');
 		/** @type {HTMLSelectElement} */
 		this.langSelect = this.querySelector('#lang');
+		/** @type {HTMLButtonElement} */
+		this.diacritic = this.querySelector('#diacritic');
+		/** @type {HTMLSelectElement} */
+		this.fontFamily = this.querySelector('#fontFamily');
 
 		this.panZoomRot = new PanZoomRotate(this.editor);
 		this.touch = new Touch(this.editor);
@@ -139,6 +149,22 @@ class Transcribe extends HTMLElement {
 			ev.preventDefault();
 			ev.posView = this.toViewport(ev.x, ev.y);
 			this.panZoomRot.wheel(ev);
+		});
+		this.diacritic.addEventListener('click', () => {
+			const selections = this.select.selections;
+			for (let i = 0; i < selections.length; i++) {
+				const textPath = selections[i].querySelector('textPath');
+				textPath.textContent = textPath.textContent.replace(/[\u0591-\u05cf]/g, '');
+			}
+			this.select.updateSelectGroup();
+		});
+		this.fontFamily.addEventListener('change', ev => {
+			const selections = this.select.selections;
+			for (let i = 0; i < selections.length; i++) {
+				const textPath = selections[i].querySelector('textPath');
+				textPath.style.fontFamily = ev.target.value;
+			}
+			this.select.updateSelectGroup();
 		});
 	}
 
