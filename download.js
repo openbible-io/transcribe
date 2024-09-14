@@ -4,28 +4,26 @@ import sharp from 'sharp';
 import { mkdirSync, writeFileSync  } from 'node:fs';
 import { dirname, basename } from 'node:path';
 
-var http = require('http');
-var agent = new http.Agent({maxSockets: 5}); // 5 concurrent connections per origin
-var request = http.request({..., agent: agent}, ...);
-
-/// Fetch with exponential backoff.
-async function retryFetch(url, options) {
-	options ??= {};
-	const maxAttempts = options.maxAttempts ?? 5;
-	const baseDelayMs = options.baseDelayMs ?? 1000;
-
+/**
+ * Retry `fn` with an exponential backoff.
+ */
+async function retry(fn, maxAttempts = 10, baseDelayMs = 100) {
 	for (let i = 1; i <= maxAttempts; i++) {
 		try {
-			const resp = await fetch(url, options)
-			if (resp.status != 200) throw Error(`${url} ${resp.status}`);
-			return resp;
+			return await fn();
 		} catch (error) {
-			console.warn('Retry', i, url);
+			console.warn('Retry', i, error.toString());
 			const delayMs = baseDelayMs * (2 ** i);
-			await new Promise((resolve) => setTimeout(resolve, delayMs));
+			await new Promise(res => setTimeout(res, delayMs));
 		}
 	}
-	throw new Error('Max attempts reached: ' + url);
+	throw new Error('Max attempts reached');
+}
+
+async function fetch200(url, opts) {
+	const resp = await fetch(url, opts);
+	if (resp.status != 200) throw Error(`${resp.status} ${url}`);
+	return resp;
 }
 
 /**
@@ -33,8 +31,8 @@ async function retryFetch(url, options) {
  * Protocol: https://iiif.io/api/image/3.0/
  */
 async function downloadIiif(base_url) {
-	const resp = await retryFetch(`${base_url}/info.json`);
-	const info = await resp.json(); 
+	const resp = await retry(() => fetch200(`${base_url}/info.json`));
+	const info = await resp.json();
 
 	const tile_width = Math.max(...info.sizes.map(s => s.width));
 	const tile_height = Math.max(...info.sizes.map(s => s.height));
@@ -50,19 +48,23 @@ async function downloadIiif(base_url) {
 			const region = `${left},${top},${width},${height}`;
 			// /{region}/{size}/{rotation}/{quality}.{format}
 			const url = `${base_url}/${region}/pct:100/0/default.${fmt}`;
-			tiles.push({ left, top, url });
+			tiles.push({ left, top, width, height, url });
 		}
 	}
-	await Promise.all(tiles.map(async tile => {
-		const resp = await retryFetch(tile.url);
+	await Promise.all(tiles.map(tile => retry(async() => {
+		const resp = await fetch200(tile.url);
 		tile.input = await resp.arrayBuffer();
 		try {
-			sharp(tile.input);
+			const img_sharp = sharp(tile.input);
+			const meta = await img_sharp.metadata();
+			if (meta.width != tile.width || meta.height != tile.height) {
+				throw Error(`expected ${tile.width}x${tile.height}, got ${meta.width}x${meta.height}`);
+			}
 		} catch (e) {
-			console.error('invalid tile', tile);
+			e.message += ` ${tile.url}`;
 			throw e;
 		}
-	}));
+	})));
 
 	return sharp({
 		create: {
@@ -97,12 +99,9 @@ class SQE {
 		this.base = base ?? 'https://sqe-api.deadseascrolls.org.il/v1';
 	}
 
-	async fetch(url, opts) {
-		opts = opts ?? {};
-		opts.headers ??=  {};
-		opts.headers['content-type'] ??= 'application/json';
-		url = `${this.base}${url}`;
-		const resp = await retryFetch(url, opts);
+	async fetch(path) {
+		const url = `${this.base}${path}`;
+		const resp = await retry(() => fetch200(url));
 		return resp.json();
 	}
 
@@ -165,29 +164,43 @@ async function main() {
 	console.log('fetching edition', id);
 	const images = await sqe.images(id);
 	console.log('downloading', images.length, 'images');
-	const fmt = ".webp";
-	for (let i = 0; i < images.length; i++) {
-		const img = images[i];
-		// psa/dss/iaa/263-20-recto.webp
-		const path = `dist/${img.book}/dss/${img.id}-${img.side}-${img.type}`;
-		console.log(i + 1, '/', images.length, path, img.url);
-		const img_sharp = await downloadIiif(img.url);
-		mkdirSync(dirname(path), { recursive: true });
+	const fmt = '.webp';
+	while (images.length) {
+		// Batches allow managable concurrency without running out of RAM.
+		await Promise.all(images.splice(0, 10).map(async img => {
+			// psa/dss/iaa/263-20-recto.webp
+			const path = `dist/${img.book}/dss/${img.id}-${img.side}-${img.type}`;
+			console.log(path, img.url);
+			const img_sharp = await downloadIiif(img.url);
+			mkdirSync(dirname(path), { recursive: true });
 
-		const stats = await img_sharp.metadata();
-		const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${stats.width} ${stats.height}">
-	<title>${img.name}</title>
-	<idk>${JSON.stringify(img)}</idk>
-	<image href="${basename(path)}${fmt}">${img.fragments.map(f => `
-	<path fill="rgba(0,0,100,0.5)" id="${f.name}" d="${f.polygon}">`).join('\n')}
+			const stats = await img_sharp.metadata();
+			const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${stats.width} ${stats.height}">
+	<title>${img.id}</title>
+	<metadata>
+		<ob:OB xmlns:ob="http://not.real">
+			<ob:name>${img.name}</ob:name>
+			<ob:name_alt>${img.name_alt}</ob:name_alt>
+			<ob:material>${img.material}</ob:material>
+			<ob:copy>${img.copy}</ob:copy>
+			<ob:frag>${img.frag}</ob:frag>
+			<ob:plate>${img.plate}</ob:plate>
+			<ob:publication>${img.publication}</ob:publication>
+			<ob:publication_num>${img.publication_num}</ob:publication_num>
+			<ob:url>${img.url}</ob:url>
+		</ob:OB>
+	</metadata>
+	<image href="${basename(path)}${fmt}" />${img.fragments.map(f => `
+	<polygon fill="rgba(0,0,100,0.5)" id="${f.name}" points="${f.mask.substring("POLYGON((".length, f.mask.length - 2).replaceAll(',', ' ')}" />`).join('\n')}
 </svg>`;
-		writeFileSync(path + '.svg', svg);
-		try {
-			await img_sharp.toFile(path + fmt);
-		} catch (e) {
-			console.error(img, e);
-			throw e;
-		}
+			writeFileSync(path + '.svg', svg);
+			try {
+				await img_sharp.toFile(path + fmt);
+			} catch (e) {
+				console.error(img, e);
+				throw e;
+			}
+		}));
 	}
 }
 
